@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
-import "../App.css";
 import mondaySdk from "monday-sdk-js";
+import Select from 'react-select';
+import "../App.css";
 import "monday-ui-react-core/dist/main.css"
 import "../Style/helper.css";
 import "../Style/customAccordion.css";
 //Explore more Monday React Components here: https://style.monday.com/
-import { Button, TextField } from "monday-ui-react-core";
+import { Button, TextField, Dropdown } from "monday-ui-react-core";
 
 import { 
   Accordion,
@@ -16,6 +17,7 @@ import {
 } from 'react-accessible-accordion';
 import Editor from "./Editor/Editor";
 
+const DomainKey = 'DomainList';
 const monday = mondaySdk();
 const remoteMonday = mondaySdk();
 const appVersion = '1.0';
@@ -27,8 +29,9 @@ const Main = () => {
   const [context, setContext] = useState();
   const [boardData, setData] = useState();
   const [userName, setName] = useState('...');
-  const [userIds, setUserIds] = useState([]);
+  const [userId, setUserId] = useState();
   const [domainGroups, setDomainGroups] = useState([]);
+  const [syncDomains, setSyncDom] = useState([]);
   
   const settingsRef = useRef();
         settingsRef.current = settings;
@@ -39,8 +42,8 @@ const Main = () => {
   const boardDataRef = useRef();
         boardDataRef.current = boardData;
 
-  const useridsRef = useRef();
-        useridsRef.current = userIds;
+  const useridRef = useRef();
+        useridRef.current = userId;
   
   // Input Values
   const [singleDow, setSingleDow] = useState("");
@@ -59,87 +62,28 @@ const Main = () => {
   
   useEffect(() => {
     const uSettings = monday.listen("settings", res => {
-      // Set API token for sdk in case is external
-      
-      //Default values
-      // const tempSettings = {...res.data,
-      //   externaldow: false,
-      //   slug: 'stevensandbox',
-      //   dowID: "2900890876",
-      //   apitoken: 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjE1Nzg3NzkzNCwidWlkIjoyOTk2MDE2MiwiaWFkIjoiMjAyMi0wNC0yN1QyMDoyNzoyNC4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MTE5NTUxOTYsInJnbiI6InVzZTEifQ.HscF4mE4hmrzKukXSJh-2xxAdgjZqWXkvDgG-aK-10s',
-      //   dowstatus: 'status0',
-      //   dowbb: 'text',
-      //   dowlogin: 'status_1',
-      //   dowreproducible: 'status_13',
-      //   dowpriority: 'status_18',
-      //   dowdomain: 'status7',
-      //   helperstatus: 'status',
-      //   helperdowstatus: 'status_19',
-      //   helperdowitemid: 'text4',
-      //   helperdowlink: 'link_1',
-      //   helperzdlink: 'link',
-      //   helperdate: 'date',
-      //   backtodev: 'topics',
-      //   backtoreporter: 'group_title',
-      //   movedtobugs: 'new_group63710',
-      //   helperipp: "2"
-      // };
-
-      //Default Real Board
-      const tempSettings = {...res.data,
-        externaldow: true,
-        slug: 'monday',
-        dowID: "620317422",
-        apitoken: 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjE2ODk0MTkxMiwidWlkIjoyOTk1NTQ5MCwiaWFkIjoiMjAyMi0wNy0wNlQwMTo1MjoxMy4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6NSwicmduIjoidXNlMSJ9.4_XeLCv71GKYyuvLbc-QYZ22ZS6wbIEyOlI1xgWW1cE',
-        dowstatus: 'status',
-        dowbb: '_bigbrain_account_id',
-        dowlogin: 'status_15',
-        dowreproducible: 'status_18',
-        dowpriority: 'status_1',
-        dowdomain: 'status0',
-        helperstatus: 'status',
-        helperdowstatus: 'status_19',
-        helperdowitemid: 'text4',
-        helperdowlink: 'link_1',
-        helperzdlink: 'link',
-        helperdate: 'date',
-        backtodev: 'topics',
-        backtoreporter: 'group_title',
-        movedtobugs: 'new_group63710',
-        helperipp: "100"
-      };
-
-      // for(let k in tempSettings){
-      //   if(res.data[k] != null && res.data[k] !== ""){
-      //     tempSettings[k] = res.data[k];
-      //   }
-      // }
-
-      // console.log("Settings Token for external API: eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjE2OTU5NjczMCwidWlkIjozMDA0MDU2OSwiaWFkIjoiMjAyMi0wNy0xMFQwNTowMTowMy4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MTE5ODUyODgsInJnbiI6InVzZTEifQ.y2wdQvqPYJD7qZ-TjMaP1hN2FBGxY7dhDL_gq5dHtj8");
-      remoteMonday.setToken(tempSettings.apitoken);
-
-      //setSettings(res.data);
-      setSettings(tempSettings);
-      const users = [...res.data.users.teammates];
-      if(contextRef.current) users.push(contextRef.current.user.id);
-      
-      setUserIds([...new Set(users)]);
-      console.log("Users: ", useridsRef.current);
-      
-      //console.log("SettingsRef: ",settingsRef.current);
+      remoteMonday.setToken(res.data.apitoken);
+      setSettings(res.data);
     });
 
     const uContext = monday.listen("context", res => {
       if(!contextRef.current){
         setContext(res.data);
-        setUserIds([...new Set([...useridsRef.current, res.data.user.id])]);
-        console.log("Users: ", useridsRef.current);
+        setUserId(res.data.user.id);
       }else{
         for(let k in res.data){
           contextRef.current[k] = res.data[k];
         }
         setContext(contextRef.current);
         updateLocalItems();
+      }
+    });
+
+    //Retrieve domain list
+    monday.storage.instance.getItem(DomainKey).then((res) => {
+      if(res.data.value){
+        const restoredValues = JSON.parse(res.data.value);
+        setSyncDom(restoredValues);
       }
     });
     
@@ -211,19 +155,28 @@ const Main = () => {
 
   // Get Domain Group List
   useEffect(() => {
-    //620317422
     if(settings){
+
+      if(settings.externaldow && settings.apitoken.trim() == ""){
+        monday.execute("notice", { 
+          message: 'You need to set your apitoken.',
+          type: "error",
+          timeout: 5000,
+        });
+        return;
+      }
+
+
       let mondayInterface = monday;
       if(settings.externaldow){
-        console.log("Retrieving domains from external board");
         mondayInterface = remoteMonday;
       }
 
-      console.log("dow :", settings.dowID);
-
       if(settings.dowID && settings.dowID.trim() != ""){
-        console.log("Listo para cargar dominios",settings);
         mondayInterface.api(`query ($board: [Int]){
+          me {
+            id
+          }
           boards(ids: $board){
             groups {
               id
@@ -235,7 +188,12 @@ const Main = () => {
             board: parseInt(settings.dowID)
           }
         }).then(result => {
-          console.log("Groups: ", result);
+          // Set User info
+          if(settings && settings.externaldow){
+            setUserId(result.data.me.id);
+            console.log("ID: ", result.data.me.id);
+          }
+
           let groups = [];
           if(result.data.boards.length > 0){
             if(result.data.boards[0].groups.length > 0){
@@ -262,6 +220,12 @@ const Main = () => {
             });
             console.log("No board found for: ", settings.dowID);
           }
+        }).catch(error =>{
+          monday.execute("notice", { 
+            message: `Permission denied, check api token`,
+            type: "error", // or "error" (red), or "info" (blue)
+            timeout: 5000,
+          });
         });
       }else{
         monday.execute("notice", { 
@@ -279,33 +243,27 @@ const Main = () => {
     if(errorString.length > 0){
       monday.execute("notice", { 
         message: errorString,
-        type: "error", // or "error" (red), or "info" (blue)
+        type: "error",
         timeout: 5000,
       });
       return;
     }
 
-    console.log("Trigger open card for: ",singleDow);
     monday.execute('openAppFeatureModal',{
       urlPath: ``,
       urlParams: {
         live: true,
         itemId: singleDow
       },
-      width: 600,
-      height: 800
-    }).then((res) => {
-      console.log(res.data);
-      // The above is a callback to see if a user closed the modal from the inside. This is useful should you want to run some logic within the app window. 
-   });
+      width: 700,
+      height: 900
+    });
   }
 
   // Check Settings
   const settingsValidate = () => {
     let errorStrig = 'Please make sure to fill these settings values: \n';
     let errorPresent = false;
-
-    console.log("AjustesValidation: ", settings);
 
     if(settings.externaldow && settings.apitoken.toString().trim() == ""){
       errorStrig += "* API Token\n";
@@ -392,24 +350,16 @@ const Main = () => {
       errorPresent = true;
     }
 
-    if(!settings.helperipp || settings.helperipp.trim() == ""){
-      errorStrig += "* [Local Board] IPP\n";
-      errorPresent = true;
-    }
-
     return errorPresent?errorStrig:'';
   }
 
   // Get Single DoW
   const SyncSingleDow = () => {
-    //2918221781
-    // Select mondayapi based on settings
-
     const errorString = settingsValidate();
     if(errorString.length > 0){
       monday.execute("notice", { 
         message: errorString,
-        type: "error", // or "error" (red), or "info" (blue)
+        type: "error",
         timeout: 5000,
       });
       return;
@@ -418,10 +368,6 @@ const Main = () => {
     toggleLoading(true);
     let mondayInterface;
     if(settings.externaldow){
-      if(settings.apitoken.trim() == ""){
-        //window.alert('You need to type your apitoken first');
-        console.log("API TOKEN REQUIRED");
-      }
       mondayInterface = remoteMonday;
     }else{
       mondayInterface = monday;
@@ -449,9 +395,10 @@ const Main = () => {
         toggleLoading(false);
         FillBoard(true);
       }else{
+        console.log(`Dow [${singleDow}] not found.`);
         monday.execute("notice", { 
           message: `Dow [${singleDow}] not found.`,
-          type: "error", // or "error" (red), or "info" (blue)
+          type: "error",
           timeout: 5000,
         });
         toggleLoading(false);
@@ -461,12 +408,11 @@ const Main = () => {
   
   // Get DoW Board Data
   const SyncDowData = () => {
-
     const errorString = settingsValidate();
     if(errorString.length > 0){
       monday.execute("notice", { 
         message: errorString,
-        type: "error", // or "error" (red), or "info" (blue)
+        type: "error",
         timeout: 5000,
       });
       return;
@@ -474,14 +420,16 @@ const Main = () => {
 
     if(settingsRef.current.dowID !== ""){
       toggleLoading(true);
-      getPageItems(1);
+      getPageItems().then((_) => {
+        toggleLoading(false);
+        FillBoard();
+      });
     }else{
       console.log("Sync pending");
     }
   }
 
   const compareItem = (local, remote) => {
-    //console.log(`Item Compare: [local] ${getText(local, 'DoW Status')} vs  [remote] ${getText(remote, 'Status')}`);
     if(getText(local, settings.helperdowstatus) === getText(remote, settings.dowstatus)) return false;
     return true;
   }
@@ -552,10 +500,6 @@ const Main = () => {
           }
         });
         
-        work.then((result) => {
-          console.log("Result: ",result);
-        });
-
         pendingWorks.push(work);
       });
     }
@@ -603,10 +547,6 @@ const Main = () => {
         }
       });
 
-      work.then((result) => {
-        console.log("Result: ",result);
-      });
-
       pendingWorks.push(work);
     });
     
@@ -616,7 +556,7 @@ const Main = () => {
       
       monday.execute("notice", { 
           message: resultMessage,
-          type: "success", // or "error" (red), or "info" (blue)
+          type: "success",
           timeout: 3000,
       });
       updateLocalItems();
@@ -733,7 +673,7 @@ const Main = () => {
     
   }
 
-  const getPageItems = (page) => {
+  const getPageItems = async () => {
     // Select mondayapi based on settings
     let mondayInterface;
     if(settings.externaldow){
@@ -742,41 +682,46 @@ const Main = () => {
       mondayInterface = monday;
     }
 
-    mondayInterface.api(`query ($board: [Int]) {
-      boards (ids: $board){
-        items(limit: ${settingsRef.current.helperipp}, page: ${page}) {
-          id
-          name
-          creator {
-            id
-          }
-          column_values {
-            id
-            value
-            text
-          }
+    for(let domain of syncDomains){
+      const result =  await mondayInterface.api(`query ($board: [Int], $groups: [String], $columns: [String]) {
+          boards (ids: $board){
+            groups(ids: $groups) {
+              items(exclude_nonactive: true) {
+                id
+                name
+                creator {
+                  id
+                }
+                column_values(ids: $columns) {
+                  id
+                  value
+                  text
+                }
+              }
+            }    
+          }  
         }
-      }  
-    }
-    `, { 
-      variables: {
-        board: parseInt(settingsRef.current.dowID)
-      }
-    }).then(res => {
-      const board = res.data.boards[0];
-      const items = board.items;
-      
+      `, { 
+        variables: {
+          board: parseInt(settingsRef.current.dowID),
+          groups: [domain.value],
+          columns: [settings.dowstatus]
+        }
+      });
+
+      const group = result.data.boards[0].groups[0];
+      const items = group.items;
+
       if(items.length > 0){
         const newBatch  = items.filter((i) => {
-          return useridsRef.current.includes(i.creator.id.toString());
+          return i.creator.id == useridRef.current;
         });
+        console.log("New batch: ", newBatch);
         setMyItems([...myItemsRef.current, ...newBatch]);
-        getPageItems(page+1);
       }else{
-        toggleLoading(false);
-        FillBoard();
+        console.log(`[${domain}] contained no items.`);
       }
-    });
+    }
   }
 
   return(<div className="Container d-flex d-col-dir px-3 pb-3 bg-white">
@@ -804,7 +749,18 @@ const Main = () => {
                   </AccordionItemButton>
               </AccordionItemHeading>
               <AccordionItemPanel>
-                  <p>You can now syncronize the information from the DoW Board.</p>
+                  <p>First ensure that the settings are all in place, if you are working from your demo account make sure to enable the option "External DoW Board" and add your API Token. </p>
+                  <p>Done? Now you can select which domains will be used to import dow's from the DoW Board.</p>
+                  <div className="mb-2">
+                  <Select
+                        isMulti
+                        isSearchable
+                        isClearable
+                        value={syncDomains}
+                        placeholder='Select which domains to sync'
+                        onChange={(values) => {monday.storage.instance.setItem(DomainKey, JSON.stringify(values)); setSyncDom(values)}}
+                        options={domainGroups} />
+                  </div>
                   <Button onClick={SyncDowData} loading={loading||writing}>
                     <strong>Sync my &nbsp;DoW cases</strong>
                   </Button>
@@ -891,10 +847,7 @@ const Main = () => {
                   </AccordionItemButton>
               </AccordionItemHeading>
               <AccordionItemPanel>
-
-                  <Button onClick={SyncDowData} loading={loading||writing}>
-                    Fix Settings
-                  </Button>
+                  {'Check the settings (:'}
               </AccordionItemPanel>
           </AccordionItem>
 
