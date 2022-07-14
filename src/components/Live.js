@@ -17,8 +17,8 @@ const Live = () => {
 
     useEffect(() => {
         const uSettings = monday.listen("settings", res => {
-          remoteMonday.setToken(res.data.apitoken);
-          setSettings(res.data);
+            remoteMonday.setToken(res.data.apitoken);
+            setSettings(res.data);
         });
 
         return (() => {

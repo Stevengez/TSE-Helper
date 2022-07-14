@@ -156,7 +156,6 @@ const Main = () => {
   // Get Domain Group List
   useEffect(() => {
     if(settings){
-
       if(settings.externaldow && settings.apitoken.trim() == ""){
         monday.execute("notice", { 
           message: 'You need to set your apitoken.',
@@ -165,7 +164,6 @@ const Main = () => {
         });
         return;
       }
-
 
       let mondayInterface = monday;
       if(settings.externaldow){
@@ -265,6 +263,8 @@ const Main = () => {
     let errorStrig = 'Please make sure to fill these settings values: \n';
     let errorPresent = false;
 
+    console.log("Current Settings: ", settings);
+
     if(settings.externaldow && settings.apitoken.toString().trim() == ""){
       errorStrig += "* API Token\n";
       errorPresent = true;
@@ -305,37 +305,37 @@ const Main = () => {
       errorPresent = true;
     }
 
-    if(!settings.helperstatus || settings.helperstatus.trim() == ""){
+    if(!settings.helperstatus || Object.keys(settings.helperstatus).length == 0){
       errorStrig += "* [Local Board] Status\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdowstatus || settings.helperdowstatus.trim() == ""){
+    if(!settings.helperdowstatus || Object.keys(settings.helperdowstatus).length == 0){
       errorStrig += "* [Local Board] DoW Status\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdowitemid || settings.helperdowitemid.trim() == ""){
+    if(!settings.helperdowitemid || Object.keys(settings.helperdowitemid).length == 0){
       errorStrig += "* [Local Board] DoW ItemID\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdowlink || settings.helperdowlink.trim() == ""){
+    if(!settings.helperdowlink || Object.keys(settings.helperdowlink).length == 0){
       errorStrig += "* [Local Board] DoW Link\n";
       errorPresent = true;
     }
 
-    if(!settings.helperzdlink || settings.helperzdlink.trim() == ""){
+    if(!settings.helperzdlink || Object.keys(settings.helperzdlink).length == 0){
       errorStrig += "* [Local Board] ZD Link\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdate || settings.helperdate.trim() == ""){
+    if(!settings.helperdate || Object.keys(settings.helperdate).length == 0){
       errorStrig += "* [Local Board] Followup Date\n";
       errorPresent = true;
     }
 
-    if(!settings.backtodev || settings.backtodev.trim() == ""){
+    if(!settings.backtodev ||  settings.backtodev.trim() == ""){
       errorStrig += "* [Local Board] Back to Dev\n";
       errorPresent = true;
     }
@@ -430,7 +430,7 @@ const Main = () => {
   }
 
   const compareItem = (local, remote) => {
-    if(getText(local, settings.helperdowstatus) === getText(remote, settings.dowstatus)) return false;
+    if(getText(local, Object.keys(settings.helperdowstatus)[0]) === getText(remote, settings.dowstatus)) return false;
     return true;
   }
 
@@ -446,7 +446,7 @@ const Main = () => {
       let found = false;
       for(let local_Item of localCopy){
         //const lid = getText(local_Item.column_values, settings.helperdowitemid);
-        if(remoteCopy[0].id === getText(local_Item.column_values, settings.helperdowitemid)){
+        if(remoteCopy[0].id === getText(local_Item.column_values, Object.keys(settings.helperdowitemid)[0])){
           found = true;
           if(compareItem(local_Item.column_values, remoteCopy[0].column_values)){
             RemotePendingUpdate.push({...remoteCopy[0], localID: local_Item.id}); 
@@ -495,7 +495,7 @@ const Main = () => {
           variables: {
             board: parseInt(context.boardIds),
             item: parseInt(dow.localID),
-            column: settings.helperdowstatus,
+            column: Object.keys(settings.helperdowstatus)[0],
             value: JSON.stringify(jsonValue)
           }
         });
@@ -511,28 +511,28 @@ const Main = () => {
       const jsonValue = {};
 
       // Set Date
-      jsonValue[settings.helperdate] = {
+      jsonValue[Object.keys(settings.helperdate)[0]] = {
         date: getToday()
       };
 
       // Set Local Status
-      jsonValue[settings.helperstatus] = {
+      jsonValue[Object.keys(settings.helperstatus)[0]] = {
         label:localStatus
       };
 
       // Set DoW Status
-      jsonValue[settings.helperdowstatus] = {
+      jsonValue[Object.keys(settings.helperdowstatus)[0]] = {
         label:doWStatus
       };
 
       // Set DoW Link
-      jsonValue[settings.helperdowlink] = {
+      jsonValue[Object.keys(settings.helperdowlink)[0]] = {
         url:`https://${settingsRef.current.slug}.monday.com/boards/${settingsRef.current.dowID}/pulses/${dow.id}`,
         text: 'DoW Board'
       };
 
       // Set DoW RemoteID
-      jsonValue[settings.helperdowitemid] = `${dow.id}`;
+      jsonValue[Object.keys(settings.helperdowitemid)[0]] = `${dow.id}`;
 
       const work = monday.api(`mutation ($itemName: String, $board: Int!, $group: String, $valuesPack: JSON) {
         create_item(item_name: $itemName, board_id: $board, group_id: $group, column_values: $valuesPack){
