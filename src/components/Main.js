@@ -885,6 +885,7 @@ const Main = () => {
               <AccordionItemPanel>
                 <p className="mb-0">TSE helper v {appVersion}</p>
                 <p className="mt-0">Developed by <strong>Steven Jocol</strong></p>
+                <a href="https://github.com/Stevengez/TSE-Helper" target="blank" style={{textDecoration: 'none'}}>Source Code</a>
               </AccordionItemPanel>
           </AccordionItem>
         </Accordion>
