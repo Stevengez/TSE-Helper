@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import JoditEditor from "jodit-react";
 import { Button, TextField, Dropdown } from "monday-ui-react-core";
 
@@ -185,13 +185,13 @@ const Editor = (props) => {
 
         let errorString = '';
 
-        if(!newDow_name || newDow_name.trim() == ""){
+        if(!newDow_name || newDow_name.trim() === ""){
             errorString += 'Name/Title is missing';
         }
 
         console.log('Domain is: ', newDow_domain);
 
-        if(!newDow_domain || !newDow_domain.value || newDow_domain == ""){
+        if(!newDow_domain || !newDow_domain.value || newDow_domain === ""){
             errorString += errorString.length > 0 ? ', ':'';
             errorString += 'Select a domain to place the dow';
         }
@@ -239,7 +239,7 @@ const Editor = (props) => {
 
         const itemResult = await writeToMonday(mondayInterface, query, variables, 'item', 5);
 
-        if(itemResult == -1){
+        if(itemResult === -1){
             props.monday.execute("notice", { 
                 message: 'Error while creating the DoW, please try again later',
                 type: "error", // or "error" (red), or "info" (blue)
@@ -249,8 +249,6 @@ const Editor = (props) => {
             return;
         }
 
-        console.log("THIS SHOULD NOT APPEAR WHEN ERROR");
-        console.log("Item creation: ", itemResult);
         const itemID = itemResult.data.create_item.id
 
         var EditorsParser = new DOMParser();
@@ -260,10 +258,10 @@ const Editor = (props) => {
 
         if(descriptionHTML.getElementsByTagName('img').length > 0){
             let query = `mutation ($item: Int!, $body: String!) {create_update(item_id: $item, body: $body){id}}`;
-            let variables = { item: parseInt(itemID), body: `<pre>&#xFEFF;Do not delete this update<br></pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre>` };
+            let variables = { item: parseInt(itemID), body: `<p style="display:none;">#TSE_HELPER#</p><pre>&#xFEFF;Do not delete this update<br></pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre>` };
             let tempResult = await writeToMonday(mondayInterface, query, variables, 'update', 5);
             
-            if(tempResult == -1){
+            if(tempResult === -1){
                 props.monday.execute("notice", { 
                     message: `Error while creating update, item did create, please update it manually: https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
                     type: "error", // or "error" (red), or "info" (blue)
@@ -278,39 +276,42 @@ const Editor = (props) => {
             
             // Upload and replace pictures [pictures]
             for(let picture of descriptionHTML.getElementsByTagName('img')){
-                // Upload the base64 picture to dummy 
-                let query = `mutation ($update: Int!, $file: File!) {
-                    add_file_to_update (update_id: $update, file: $file) {
-                        id
-                        url
+                //Verify if is base64 Picture:
+                if(picture.src.substring(0,4) === "data"){
+                    // Upload the base64 picture to dummy 
+                    let query = `mutation ($update: Int!, $file: File!) {
+                        add_file_to_update (update_id: $update, file: $file) {
+                            id
+                            url
+                        }
+                    }`;
+                    let variables = { update: parseInt(filesPost), file: picture.src };
+                    tempResult = await writeToMonday(mondayInterface, query, variables, 'update', 5);
+                    
+                    if(tempResult === -1){
+                        props.monday.execute("notice", { 
+                            message: `Error while creating update, item did create, please update it manually: https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
+                            type: "error", // or "error" (red), or "info" (blue)
+                            timeout: 20000,
+                        });
+                        props.toggleWriting(false);
+                        return;
                     }
-                }`;
-                let variables = { update: parseInt(filesPost), file: picture.src };
-                tempResult = await writeToMonday(mondayInterface, query, variables, 'update', 5);
-                
-                if(tempResult == -1){
-                    props.monday.execute("notice", { 
-                        message: `Error while creating update, item did create, please update it manually: https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
-                        type: "error", // or "error" (red), or "info" (blue)
-                        timeout: 20000,
-                    });
-                    props.toggleWriting(false);
-                    return;
+                    
+                    const fileReference = tempResult.data.add_file_to_update;
+                    picture.src = fileReference.url;
                 }
-                
-                const fileReference = tempResult.data.add_file_to_update;
-                picture.src = fileReference.url;
                 picture.className = "post_image_group"
             }
         }
 
         if(picturesHTML.getElementsByTagName('img').length > 0){
-            if(filesPost == -1){
+            if(filesPost === -1){
                 let query = `mutation ($item: Int!, $body: String!) { create_update(item_id: $item, body: $body){ id } }`;
-                let variables = { item: parseInt(itemID), body: `<pre>&#xFEFF;Do not delete this update<br></pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre>` };
+                let variables = { item: parseInt(itemID), body: `<p style="display:none;">#TSE_HELPER#</p><pre>&#xFEFF;Do not delete this update<br></pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre><pre>&#xFEFF;</pre>` };
                 const tempResult =  await writeToMonday(mondayInterface, query, variables, 'update', 5);
             
-                if(tempResult == -1){
+                if(tempResult === -1){
                     props.monday.execute("notice", { 
                         message: `Error while creating update, item did create, please update it manually: https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
                         type: "error", // or "error" (red), or "info" (blue)
@@ -321,39 +322,42 @@ const Editor = (props) => {
                 }
                 
                 filesPost = tempResult.data.create_update.id;
-                console.log("updateID: ",filesPost);
             }
             
             // Upload and replace pictures [pictures]
             for(let picture of picturesHTML.getElementsByTagName('img')){
-                // Upload the base64 picture to dummy 
-                let query = `mutation ($update: Int!, $file: File!) {
-                    add_file_to_update (update_id: $update, file: $file) {
-                        id
-                        url
+                // Verify if this is a base64 img
+                if(picture.src.substring(0,4) === "data"){
+                    // Upload the base64 picture to dummy 
+                    let query = `mutation ($update: Int!, $file: File!) {
+                        add_file_to_update (update_id: $update, file: $file) {
+                            id
+                            url
+                        }
+                    }`;
+                    let variables = { update: parseInt(filesPost), file: picture.src };
+
+                    const tempResult = await writeToMonday(mondayInterface, query, variables, 'update', 5);
+                
+                    if(tempResult === -1){
+                        props.monday.execute("notice", { 
+                            message: `Error while creating update, item did create, please update it manually: https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
+                            type: "error", // or "error" (red), or "info" (blue)
+                            timeout: 20000,
+                        });
+                        props.toggleWriting(false);
+                        return;
                     }
-                }`;
-                let variables = { update: parseInt(filesPost), file: picture.src };
 
-                const tempResult = await writeToMonday(mondayInterface, query, variables, 'update', 5);
-            
-                if(tempResult == -1){
-                    props.monday.execute("notice", { 
-                        message: `Error while creating update, item did create, please update it manually: https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
-                        type: "error", // or "error" (red), or "info" (blue)
-                        timeout: 20000,
-                    });
-                    props.toggleWriting(false);
-                    return;
+                    const fileReference = tempResult.data.add_file_to_update;
+                    picture.src = fileReference.url;
+                
                 }
-
-                const fileReference = tempResult.data.add_file_to_update;
-                picture.src = fileReference.url;
                 picture.className = "post_image_group"
             }
         }
 
-        const bigbrainLink = newDow_bigbrain.trim() == "" ? '':`<a href="https://bigbrain.me/accounts/${newDow_bigbrain}/profile" target="_blank" rel="noopener">https://bigbrain.me/accounts/${newDow_bigbrain}/profile</a>`;
+        const bigbrainLink = newDow_bigbrain.trim() === "" ? '':`<a href="https://bigbrain.me/accounts/${newDow_bigbrain}/profile" target="_blank" rel="noopener">https://bigbrain.me/accounts/${newDow_bigbrain}/profile</a>`;
 
         let preformat = `<p><strong>1. Description of the issue: &#xFEFF;&#xFEFF;</strong></p>${descriptionHTML.body.innerHTML.toString().replaceAll('<p></p>','')}`;
         preformat +=`<p><br><strong>2. Screenshots/videos: </strong><br></p>`;
@@ -386,7 +390,7 @@ const Editor = (props) => {
         variables = { item: parseInt(itemID), body: preformat };
 
         let updateResult = await writeToMonday(mondayInterface, query, variables, 'update', 5);
-        if(updateResult == -1){
+        if(updateResult === -1){
             props.monday.execute("notice", { 
                 message: `Error while creating update, item did create, please update it manually: https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
                 type: "error", // or "error" (red), or "info" (blue)
@@ -396,13 +400,29 @@ const Editor = (props) => {
             return;
         }
 
+        if(
+            !props.settings.helperdowstatus || 
+            !props.settings.helperstatus || 
+            !props.settings.helperdowitemid ||
+            !props.settings.helperdate ||
+            !props.settings.helperdowlink
+        ){
+            props.monday.execute("notice", { 
+                message: `Missing settings for local board, fix and import it later with with ID: ${itemID}`,
+                type: "error", // or "error" (red), or "info" (blue)
+                timeout: 25000,
+            });
+            props.toggleWriting(false);
+            return;
+        }
+
         // Copy Item Values
         jsonValue = {};
-        jsonValue[props.settings.helperdowstatus] = { label: 'New ticket' };
-        jsonValue[props.settings.helperstatus] = { label: props.statusSelector('New ticket') };
-        jsonValue[props.settings.helperdowitemid] = `${itemID}`;
-        jsonValue[props.settings.helperdate] = { date: props.today() };
-        jsonValue[props.settings.helperdowlink] = {
+        jsonValue[Object.keys(props.settings.helperdowstatus)[0]] = { label: 'New ticket' };
+        jsonValue[Object.keys(props.settings.helperstatus)[0]] = { label: props.statusSelector('New ticket') };
+        jsonValue[Object.keys(props.settings.helperdowitemid)[0]] = `${itemID}`;
+        jsonValue[Object.keys(props.settings.helperdate)[0]] = { date: props.today() };
+        jsonValue[Object.keys(props.settings.helperdowlink)[0]] = {
             url:`https://${props.settings.slug}.monday.com/boards/${props.settings.dowID}/pulses/${itemID}`,
             text: 'DoW Board'
         };
@@ -414,7 +434,7 @@ const Editor = (props) => {
         }
 
         query = `mutation ($itemName: String, $board: Int!, $group: String, $valuesPack: JSON) {
-            create_item(item_name: $itemName, board_id: $board, group_id: $group, column_values: $valuesPack){
+            create_item(item_name: $itemName, board_id: $board, group_id: $group, column_values: $valuesPack, create_labels_if_missing: true){
                 id
             }
         }`;
@@ -428,7 +448,7 @@ const Editor = (props) => {
 
         const copyResult = await writeToMonday(props.monday, query, variables, 'local item', 5);
 
-        if(copyResult == -1){
+        if(copyResult === -1){
             props.monday.execute("notice", { 
                 message: `Error when creating item in your local board, import it later with with ID: ${itemID}`,
                 type: "error", // or "error" (red), or "info" (blue)
@@ -441,7 +461,7 @@ const Editor = (props) => {
         props.toggleWriting(false);
 
         props.monday.execute("notice", { 
-            message: `Dow created and synchronized correctly.`,
+            message: `Dow created and synchronized correctly: ${itemID}`,
             type: "success", // or "error" (red), or "info" (blue)
             timeout: 10000,
         });

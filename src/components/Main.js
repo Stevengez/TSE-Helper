@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import mondaySdk from "monday-sdk-js";
 import Select from 'react-select';
+import { UrlParser } from "url-params-parser";
 import "../App.css";
 import "monday-ui-react-core/dist/main.css"
 import "../Style/helper.css";
 import "../Style/customAccordion.css";
 //Explore more Monday React Components here: https://style.monday.com/
-import { Button, TextField, Dropdown } from "monday-ui-react-core";
+import { Button, TextField } from "monday-ui-react-core";
 
 import { 
   Accordion,
@@ -20,7 +21,7 @@ import Editor from "./Editor/Editor";
 const DomainKey = 'DomainList';
 const monday = mondaySdk();
 const remoteMonday = mondaySdk();
-const appVersion = '1.0';
+const appVersion = '2.0.0';
 
 const Main = () => {
 
@@ -117,13 +118,13 @@ const Main = () => {
           boards: context.boardIds
         }
       }).then( res => {
-        if(res.data.boards){
+        if(res.data.boards.length > 0){
           setName(res.data.me.name);
           setData(res.data.boards[0].items);
         }
       });
     }
-  }, context);
+  }, [context]);
 
   // Get Local Board Data
   const updateLocalItems = () =>{
@@ -146,7 +147,7 @@ const Main = () => {
           board: contextRef.current.boardIds
         }
       }).then( res => {
-        if(res.data.boards){
+        if(res.data.boards.length > 0){
           setData(res.data.boards[0].items);
         }
       });
@@ -156,7 +157,7 @@ const Main = () => {
   // Get Domain Group List
   useEffect(() => {
     if(settings){
-      if(settings.externaldow && settings.apitoken.trim() == ""){
+      if(settings.externaldow && settings.apitoken.trim() === ""){
         monday.execute("notice", { 
           message: 'You need to set your apitoken.',
           type: "error",
@@ -170,7 +171,7 @@ const Main = () => {
         mondayInterface = remoteMonday;
       }
 
-      if(settings.dowID && settings.dowID.trim() != ""){
+      if(settings.dowID && settings.dowID.trim() !== ""){
         mondayInterface.api(`query ($board: [Int]){
           me {
             id
@@ -235,9 +236,25 @@ const Main = () => {
     }
   }, [settings]);
 
+  const parseItemLinks = (value) => {
+    const regex = /^(http|https):\/\/.+\.monday\.com\/boards\/[0-9]+\/pulses\/[0-9]+(\/posts\/[0-9]+)?(\?.*)?$/;
+
+    if(regex.test(value.toLowerCase().trim())){
+      const parserurl = UrlParser(
+        value.toLowerCase().trim(),
+        "/boards/:boardId/pulses/:itemId/posts/:postid"
+      );
+
+      const { itemId } = parserurl.namedParams;
+      setSingleDow(itemId);
+    }else{
+      setSingleDow(value.replace(/\D/g, ''));
+    }
+  }
+
   // Open Item CardBoard to see from here
   const OpenLiveView = () => {
-    const errorString = settingsValidate();
+    const errorString = settingsLiveValidate();
     if(errorString.length > 0){
       monday.execute("notice", { 
         message: errorString,
@@ -258,94 +275,134 @@ const Main = () => {
     });
   }
 
+
+  const settingsLiveValidate = () => {
+    let errorStrig = 'Please make sure to fill these settings values: \n';
+    let errorPresent = false;
+
+    //console.log("Current Settings: ", settings);
+
+    if(settings.externaldow && settings.apitoken.toString().trim() === ""){
+      errorStrig += "* API Token\n";
+      errorPresent = true;
+    }
+
+    if(!settings.dowID || settings.dowID.trim() === ""){
+      errorStrig += "* DoW Board ID\n";
+      errorPresent = true;
+    }
+
+    if(!settings.dowstatus || settings.dowstatus.trim() === ""){
+      errorStrig += "* [DoW Col ID] Status\n";
+      errorPresent = true;
+    }
+
+    if(!settings.dowlogin || settings.dowlogin.trim() === ""){
+      errorStrig += "* [DoW Col ID] Login Permission\n";
+      errorPresent = true;
+    }
+
+    if(!settings.dowreproducible || settings.dowreproducible.trim() === ""){
+      errorStrig += "* [DoW Col ID] Reproducible\n";
+      errorPresent = true;
+    }
+
+    if(!settings.dowpriority || settings.dowpriority.trim() === ""){
+      errorStrig += "* [DoW Col ID] Priority\n";
+      errorPresent = true;
+    }
+
+    return errorPresent?errorStrig:'';
+  }
+
   // Check Settings
   const settingsValidate = () => {
     let errorStrig = 'Please make sure to fill these settings values: \n';
     let errorPresent = false;
 
-    console.log("Current Settings: ", settings);
+    //console.log("Current Settings: ", settings);
 
-    if(settings.externaldow && settings.apitoken.toString().trim() == ""){
+    if(settings.externaldow && settings.apitoken.toString().trim() === ""){
       errorStrig += "* API Token\n";
       errorPresent = true;
     }
 
-    if(!settings.dowID || settings.dowID.trim() == ""){
+    if(!settings.dowID || settings.dowID.trim() === ""){
       errorStrig += "* DoW Board ID\n";
       errorPresent = true;
     }
 
-    if(!settings.slug || settings.slug.trim() == ""){
+    if(!settings.slug || settings.slug.trim() === ""){
       errorStrig += "* Account Slug\n";
       errorPresent = true;
     }
 
-    if(!settings.dowstatus || settings.dowstatus.trim() == ""){
+    if(!settings.dowstatus || settings.dowstatus.trim() === ""){
       errorStrig += "* [DoW Col ID] Status\n";
       errorPresent = true;
     }
 
-    if(!settings.dowbb || settings.dowbb.trim() == ""){
+    if(!settings.dowbb || settings.dowbb.trim() === ""){
       errorStrig += "* [DoW Col ID] BigBrain\n";
       errorPresent = true;
     }
 
-    if(!settings.dowlogin || settings.dowlogin.trim() == ""){
+    if(!settings.dowlogin || settings.dowlogin.trim() === ""){
       errorStrig += "* [DoW Col ID] Login Permission\n";
       errorPresent = true;
     }
 
-    if(!settings.dowreproducible || settings.dowreproducible.trim() == ""){
+    if(!settings.dowreproducible || settings.dowreproducible.trim() === ""){
       errorStrig += "* [DoW Col ID] Reproducible\n";
       errorPresent = true;
     }
 
-    if(!settings.dowpriority || settings.dowpriority.trim() == ""){
+    if(!settings.dowpriority || settings.dowpriority.trim() === ""){
       errorStrig += "* [DoW Col ID] Priority\n";
       errorPresent = true;
     }
 
-    if(!settings.helperstatus || Object.keys(settings.helperstatus).length == 0){
+    if(!settings.helperstatus || Object.keys(settings.helperstatus).length === 0){
       errorStrig += "* [Local Board] Status\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdowstatus || Object.keys(settings.helperdowstatus).length == 0){
+    if(!settings.helperdowstatus || Object.keys(settings.helperdowstatus).length === 0){
       errorStrig += "* [Local Board] DoW Status\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdowitemid || Object.keys(settings.helperdowitemid).length == 0){
+    if(!settings.helperdowitemid || Object.keys(settings.helperdowitemid).length === 0){
       errorStrig += "* [Local Board] DoW ItemID\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdowlink || Object.keys(settings.helperdowlink).length == 0){
+    if(!settings.helperdowlink || Object.keys(settings.helperdowlink).length === 0){
       errorStrig += "* [Local Board] DoW Link\n";
       errorPresent = true;
     }
 
-    if(!settings.helperzdlink || Object.keys(settings.helperzdlink).length == 0){
+    if(!settings.helperzdlink || Object.keys(settings.helperzdlink).length === 0){
       errorStrig += "* [Local Board] ZD Link\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdate || Object.keys(settings.helperdate).length == 0){
+    if(!settings.helperdate || Object.keys(settings.helperdate).length === 0){
       errorStrig += "* [Local Board] Followup Date\n";
       errorPresent = true;
     }
 
-    if(!settings.backtodev ||  settings.backtodev.trim() == ""){
+    if(!settings.backtodev ||  settings.backtodev.trim() === ""){
       errorStrig += "* [Local Board] Back to Dev\n";
       errorPresent = true;
     }
 
-    if(!settings.backtoreporter || settings.backtoreporter.trim() == ""){
+    if(!settings.backtoreporter || settings.backtoreporter.trim() === ""){
       errorStrig += "* [Local Board] Waiting for Reporter\n";
       errorPresent = true;
     }
 
-    if(!settings.movedtobugs || settings.movedtobugs.trim() == ""){
+    if(!settings.movedtobugs || settings.movedtobugs.trim() === ""){
       errorStrig += "* [Local Board] Moved to bugs\n";
       errorPresent = true;
     }
@@ -488,7 +545,7 @@ const Main = () => {
         };
   
         const work = monday.api(`mutation ($board: Int!, $item: Int, $column: String!, $value: JSON!) {
-          change_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value){
+          change_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value, create_labels_if_missing: true){
             id
           }
         }`, {
@@ -535,7 +592,7 @@ const Main = () => {
       jsonValue[Object.keys(settings.helperdowitemid)[0]] = `${dow.id}`;
 
       const work = monday.api(`mutation ($itemName: String, $board: Int!, $group: String, $valuesPack: JSON) {
-        create_item(item_name: $itemName, board_id: $board, group_id: $group, column_values: $valuesPack){
+        create_item(item_name: $itemName, board_id: $board, group_id: $group, column_values: $valuesPack, create_labels_if_missing: true){
           id
         }
       }`, {
@@ -620,18 +677,6 @@ const Main = () => {
     return year+'-'+month+'-'+day;
   }
 
-  const getValue = (column_values, targetId) => {
-    const colIdx = column_values.findIndex((c) => {
-      return c.id === targetId;
-    });
-
-    if(colIdx !== -1){
-      return column_values[colIdx].value;
-    }else{
-      console.log(`${targetId} doesn't exists`);
-    }
-  }
-
   const getText = (column_values, targetId) => {
     const colIdx = column_values.findIndex((c) => {
       return c.id === targetId;
@@ -714,9 +759,8 @@ const Main = () => {
 
       if(items.length > 0){
         const newBatch  = items.filter((i) => {
-          return i.creator.id == useridRef.current;
+          return i.creator.id === useridRef.current;
         });
-        console.log("New batch: ", newBatch);
         setMyItems([...myItemsRef.current, ...newBatch]);
       }else{
         console.log(`[${domain}] contained no items.`);
@@ -779,7 +823,7 @@ const Main = () => {
                   <AccordionItem>
                       <AccordionItemHeading>
                           <AccordionItemButton>
-                              DoW Live view 
+                              DoW live view 
                           </AccordionItemButton>
                       </AccordionItemHeading>
                       <AccordionItemPanel>
@@ -789,12 +833,12 @@ const Main = () => {
                             iconName="fa fa-square"
                             placeholder="item id"
                             value={singleDow.replace(/\D/g, '')}
-                            onChange={(value) => setSingleDow(value.replace(/\D/g, ''))}
+                            onChange={(value) => parseItemLinks(value)}
                             wrapperClassName="monday-storybook-text-field_size"
                           />
                           <div className="m-auto pl-1">
-                            <Button onClick={OpenLiveView} loading={loading||writing} size={Button.sizes.SMALL} disabled={singleDow == ""}>
-                              Open Live View
+                            <Button onClick={OpenLiveView} loading={loading||writing} size={Button.sizes.SMALL} disabled={singleDow === ""}>
+                              Open live View
                             </Button>
                           </div>
                         </div>
@@ -814,11 +858,11 @@ const Main = () => {
                             iconName="fa fa-square"
                             placeholder="item id"
                             value={singleDow.replace(/\D/g, '')}
-                            onChange={(value) => setSingleDow(value.replace(/\D/g, ''))}
+                            onChange={(value) => parseItemLinks(value)}
                             wrapperClassName="monday-storybook-text-field_size"
                           />
                           <div className="m-auto pl-1">
-                            <Button onClick={SyncSingleDow} loading={loading||writing} size={Button.sizes.SMALL} disabled={singleDow == ""}>
+                            <Button onClick={SyncSingleDow} loading={loading||writing} size={Button.sizes.SMALL} disabled={singleDow === ""}>
                               Sync dow
                             </Button>
                           </div>
@@ -847,7 +891,7 @@ const Main = () => {
                   </AccordionItemButton>
               </AccordionItemHeading>
               <AccordionItemPanel>
-                  {'Check the settings (:'}
+                  {'Check the settings (: or contact Steven Jocol via Slack'}
               </AccordionItemPanel>
           </AccordionItem>
 
@@ -860,17 +904,67 @@ const Main = () => {
               <AccordionItemPanel>
                 <Accordion allowZeroExpanded allowMultipleExpanded>
                   <AccordionItem>
-                      <AccordionItemHeading>
-                          <AccordionItemButton>
-                              Why not update by default?
-                          </AccordionItemButton>
-                      </AccordionItemHeading>
-                      <AccordionItemPanel>
-                        The purpose of this tool is to help you have a good idea of what DoW's you have open, 
-                        what is their status and therefore always remember what is the next step.
+                    <AccordionItemHeading>
+                        <AccordionItemButton>
+                            Is there a loom of how to use this?
+                        </AccordionItemButton>
+                    </AccordionItemHeading>
+                    <AccordionItemPanel>
+                      <p>Yes there is!</p>
+                      <p>Please take a look <a href="">here</a>.</p>
+                    </AccordionItemPanel>
+                  </AccordionItem>
 
-                        If the tool updates the information for you then you may forget to actually do the steps required by the new status.
-                      </AccordionItemPanel>
+                  <AccordionItem>
+                    <AccordionItemHeading>
+                        <AccordionItemButton>
+                            Why not update by default?
+                        </AccordionItemButton>
+                    </AccordionItemHeading>
+                    <AccordionItemPanel>
+                      The purpose of this tool is to help you have a good idea of what DoW's you have open, 
+                      what is their status and therefore always remember what is the next step.
+
+                      If the tool updates the information for you then you may forget to actually do the steps required by the new status.
+                    </AccordionItemPanel>
+                  </AccordionItem>
+
+                  <AccordionItem>
+                    <AccordionItemHeading>
+                        <AccordionItemButton>
+                            Why is an update that says "Do not delete" being created with my DoWs?
+                        </AccordionItemButton>
+                    </AccordionItemHeading>
+                    <AccordionItemPanel>
+                      <p>This app works directly with the monday API and at the moment is not possible to upload images directly into
+                      an update's body.</p><p>In order to workaround that, first a "dummy" update is created to upload the images needed and then the actual DOW update is created with reference to those images uploaded in the previous "dummy" update.</p>
+                      <p>If that update gets deleted then the images as well.</p> 
+                    </AccordionItemPanel>
+                  </AccordionItem>
+
+                  <AccordionItem>
+                    <AccordionItemHeading>
+                        <AccordionItemButton>
+                            Can I tag people in my replies from the Live view?
+                        </AccordionItemButton>
+                    </AccordionItemHeading>
+                    <AccordionItemPanel>
+                      <p>This app works directly with the monday API and at the moment is not possible to tag someone using the API.</p>
+                      <p>To workaround that, the app will send custom notifications to the users you tag including @Everyone in this item, so you don't need to worry about the user not being notified, however they may receive some emails about the notifications with the raw notification content HTML code from the custom notification.</p>
+                    </AccordionItemPanel>
+                  </AccordionItem>
+
+                  <AccordionItem>
+                    <AccordionItemHeading>
+                        <AccordionItemButton>
+                            Why just some monday.com users are available to tag?
+                        </AccordionItemButton>
+                    </AccordionItemHeading>
+                    <AccordionItemPanel>
+                      <p>This app aim for efficency, and keeps the request done to the API to the minimum, just requesting the needed items/columns/users.</p>
+                      <p>To avoid requesting all the monday users everytime that the live view is used, the available people to tag will be users that already commented, were tagged already or are subscribed to the item as all their information is already in the update/item.</p>
+                      <p>If you still need to tag someone is not showing up in the list, please use the browser/desktop app.</p>
+                    </AccordionItemPanel>
                   </AccordionItem>
               </Accordion> 
               </AccordionItemPanel>
@@ -884,7 +978,7 @@ const Main = () => {
               </AccordionItemHeading>
               <AccordionItemPanel>
                 <p className="mb-0">TSE helper v {appVersion}</p>
-                <p className="mt-0">Developed by <strong>Steven Jocol</strong></p>
+                <p className="mt-0">Developed by <strong><a style={{color: 'black'}} href="https://monday.monday.com/users/29955490">Steven Jocol</a></strong></p>
                 <a href="https://github.com/Stevengez/TSE-Helper" target="blank" style={{textDecoration: 'none'}}>Source Code</a>
               </AccordionItemPanel>
           </AccordionItem>

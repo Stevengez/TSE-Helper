@@ -50,7 +50,7 @@
 
 .UpdateHeader .name {
     display: flex;
-    justify-content: start;
+    justify-content: flex-start;
     align-items: center;
     line-height: 18px;
     margin-left: 8px;
@@ -96,6 +96,10 @@
 }
 
 .update_content img {
+    max-width: 100%;
+}
+
+.update_content_expanded img {
     max-width: 100%;
 }
 
