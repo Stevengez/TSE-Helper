@@ -5,7 +5,7 @@ import Select from 'react-select';
 import Reply from './Reply';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
-TimeAgo.addDefaultLocale(en);
+//TimeAgo.addDefaultLocale(en);
 const DropdownChevronDown = require('./Chevron.svg');
 
 const Update = (props) => {

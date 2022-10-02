@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Dropdown, Label } from "monday-ui-react-core";
+import { Dropdown, Label, TextField } from "monday-ui-react-core";
 import Update from './Update';
 import { getByText } from '@testing-library/react';
+import { useRef } from 'react';
 
 const StatusOptions = [
     {
@@ -9,8 +10,8 @@ const StatusOptions = [
         value: "Back to dev",
         color: Label.colors.POSITIVE
     },{
-        label:"Waiting for client",
-        value:"Waiting for client",
+        label:"Move back to client",
+        value:"Move back to client",
         color: Label.colors.NEGATIVE
     },{
         label:"Waiting for reporter",
@@ -34,32 +35,14 @@ const StatusOptions = [
         label:"Known bug",
         value:"Known bug"
     },{
-        label:"New",
-        value:"New"
-    },{
-        label:"w4 Review/Deploy",
-        value:"w4 Review/Deploy"
-    },{
-        label:"Closed with no response",
-        value:"Closed with no response"
-    },{
-        label:"Reviewed by TS",
-        value:"Reviewed by TS"
-    },{
-        label:"Waiting for 3rd party",
-        value:"Waiting for 3rd party"
+        label:"Closed due no response",
+        value:"Closed due no response"
     },{
         label:"Working on it",
         value:"Working on it"
     },{
-        label:"Missing Critical Data",
-        value:"Missing Critical Data"
-    },{
         label:"Waiting for permission to login",
         value:"Waiting for permission to login"
-    },{
-        label:"Escalated from design",
-        value:"Escalated from design"
     }
 ];
 const LoginOptions = [
@@ -93,6 +76,60 @@ const ReproducibleOptions = [
     label: 'No',
     value: 'Nope ❌'
 }
+];
+const PriorityOptions = [
+    {
+        label: 'P1 - Critical',
+        value: 'P1 - Critical'
+    },{
+        label: 'P2 - High',
+        value: 'P2 - High'
+    },{
+        label: 'P3 - Fix needed',
+        value: 'P3 - Fix needed'
+    },{
+        label: 'Need to Prioritze',
+        value: 'Need to Prioritze'
+    }
+];
+const TypeOptions = [
+    {
+        label: 'Bug',
+        value: 'Bug'
+    },{
+        label: 'Security Bug',
+        value: 'Security Bug'
+    },{
+        label: 'Product unclear',
+        value: 'Product unclear'
+    },{
+        label: "User's misconfiguration",
+        value: "User's misconfiguration"
+    },{
+        label: "Users's request",
+        value: "Users's request"
+    },{
+        label: 'Performance',
+        value: 'Performance'
+    },{
+        label: 'Closed w/No Response',
+        value: 'Closed w/No Response'
+    },{
+        label: 'Question',
+        value: 'Question'
+    },{
+        label: 'Other',
+        value: 'Other'
+    },{
+        label: 'Existing Bug',
+        value: 'Existing Bug'
+    },{
+        label: 'CS Request',
+        value: 'CS Request'
+    },{
+        label: 'Cheese',
+        value: 'Cheese'
+    }
 ];
 const SeverityOptions = [
 {
@@ -132,6 +169,75 @@ const SeverityOptions = [
 //   value: 'Priority 3'
 // }
 ];
+const DomainOptions = [
+    {
+        label: 'Apps & API',
+        value: 'Apps & API'
+    },{
+        label: 'Autopilot',
+        value: 'Autopilot'
+    },{
+        label: 'Linkage',
+        value: 'Linkage'
+    },{
+        label: 'Boards Core',
+        value: 'Boards Core'
+    },{
+        label: 'Client Foundations',
+        value: 'Client Foundations'
+    },{
+        label: 'Account Organization',
+        value: 'Account Organization'
+    },{
+        label: 'Users & Governance',
+        value: 'Users & Governance'
+    },{
+        label: 'Growth',
+        value: 'Growth'
+    },{
+        label: 'Insights',
+        value: 'Insights'
+    },{
+        label: 'Monetization',
+        value: 'Monetization'
+    },{
+        label: 'Billing- Do not use',
+        value: 'Billing- Do not use'
+    },{
+        label: 'People & Interactions',
+        value: 'People & Interactions'
+    },{
+        label: 'Server Foundations',
+        value: 'Server Foundations'
+    },{
+        label: 'Cross Domain',
+        value: 'Cross Domain'
+    },{
+        label: 'CRM',
+        value: 'CRM'
+    },{
+        label: 'Desktop App',
+        value: 'Desktop App'
+    },{
+        label: 'Docs',
+        value: 'Docs'
+    },{
+        label: 'Marketing Cluster',
+        value: 'Marketing Cluster'
+    },{
+        label: 'Authorization',
+        value: 'Authorization'
+    },{
+        label: 'Projects Cluster',
+        value: 'Projects Cluster'
+    },{
+        label: 'Software Cluster',
+        value: 'Software Cluster'
+    },{
+        label: 'Strategic Connections',
+        value: 'Strategic Connections'
+    }
+];
 
 const Preview = (props) => {
 
@@ -144,10 +250,21 @@ const Preview = (props) => {
     const [updates, setUpdates] = useState();
     const [photoUpdate, setPhotoAux] = useState(-1);
 
+    const [extendedPreview, toggleExtendedPreview] = useState(false);
     const [liveStatus, setStatus] = useState();
     const [liveLogin, setLogin] = useState();
     const [liveReplicable, setReplicable] = useState();
-    const [liveSeverity, setPriority] = useState();
+    const [liveDomain, setDomain] = useState();
+    const [liveSeverity, setSeverity] = useState();
+
+    const [liveBB, setBB] = useState();
+    const [liveUserID, setUserID] = useState();
+    const [livePriority, setPriority] = useState();
+    const [liveType, setType] = useState();
+
+    const typingTimer1 = useRef();
+    const typingTimer2 = useRef();
+
     const { settings, context, monday, remoteMonday, setName } = props;
 
     const writeToMonday = async (mondayInterface, query, variables, errorType, retry) => {
@@ -173,10 +290,8 @@ const Preview = (props) => {
     }
 
     const updateStatus = (columnId, newLabel, targetInterface, boardID, litemID, notNotify) => {
-
-        // console.log("Updating Status Start....");
-
         let minterface = props.monday;
+        
         if(props.settings.externaldow){
             minterface = props.remoteMonday;
         }
@@ -240,6 +355,43 @@ const Preview = (props) => {
                     }
                 }
             }
+        }
+    }
+
+    const updateText = (columnId, newText) => {
+        let minterface = props.monday;
+
+        if(props.settings.externaldow){
+            minterface = props.remoteMonday;
+        }
+
+        let query = `mutation ($board: Int!, $item: Int!, $column: String!, $value: String!){
+            change_simple_column_value (board_id: $board, item_id: $item, column_id: $column, value: $value) {
+                id
+            }
+        }`;
+
+        let variables = {
+            board: parseInt(settings.dowID),
+            item: parseInt(itemID),
+            column: columnId,
+            value: newText
+        };
+
+        const result = writeToMonday(minterface, query, variables, 'updating text', 2);
+
+        if(result === -1){
+            props.monday.execute("notice", { 
+                message: `Error updating column, please try again later`,
+                type: "error",
+                timeout: 3000,
+            });
+        }else{
+            props.monday.execute("notice", { 
+                message: `Column updated`,
+                type: "success",
+                timeout: 1500,
+            });
         }
     }
 
@@ -328,7 +480,7 @@ const Preview = (props) => {
                 }
             }`, { variables: {
                 item: parseInt(itemID),
-                columns: [props.settings.dowstatus, props.settings.dowlogin, props.settings.dowreproducible, props.settings.dowpriority]
+                columns: [props.settings.dowstatus, props.settings.dowlogin, props.settings.dowreproducible, props.settings.dowpriority, props.settings.dowbb, props.settings.dowuserid, props.settings.dowseverity, props.settings.dowdomain, props.settings.dowtype]
             }}).then(res => {
                 
                 setMePhoto(res.data.me.photo_small);
@@ -340,18 +492,24 @@ const Preview = (props) => {
                     setName(item.name);setItemName(item.name);
                     setSubscribers(item.subscribers);
                     setStatus(getSelector(item.column_values, settings.dowstatus));
+                    setDomain(getSelector(item.column_values, settings.dowdomain));
                     setLogin(getSelector(item.column_values, settings.dowlogin));
-                    setReplicable(getSelector(item.column_values, settings.dowreproducible));
+                    setSeverity(getSelector(item.column_values, settings.dowseverity));
+
                     setPriority(getSelector(item.column_values, settings.dowpriority));
+                    setType(getSelector(item.column_values, settings.dowtype));
+                    setBB(getSelector(item.column_values, settings.dowbb).value);
+                    setUserID(getSelector(item.column_values, settings.dowuserid).value);
+                    
                     setUpdates(updates);
 
-                    settings.helperdowitemid = {
-                        text4: true
-                    }
+                    // settings.helperdowitemid = {
+                    //     text4: true
+                    // }
 
-                    settings.helperdowstatus = {
-                        status_19: true
-                    }
+                    // settings.helperdowstatus = {
+                    //     status_19: true
+                    // }
 
                     monday.api(`query ($board: Int!, $column: String!, $itemId: String!) {
                         items_by_column_values (board_id: $board, column_id: $column, column_value: $itemId) {
@@ -417,41 +575,31 @@ const Preview = (props) => {
         if(!selection) return 'gray';
         switch(selection.value){
             case "Back to dev":
-                return '#6E9BFF';
-            case "Waiting for client":
-                return '#FB8CFF';
+                return '#79affd';
+            case "Move back to client":
+                return '#ff44a1';
             case "Move back to reporter":
-                return '#A707AC';
+                return '#b57de3';
             case "Done":
-                return '#0AA91B';
+                return '#33d391';
             case "New ticket":
-                return '#9E9E9E';
+                return '#797e93';
             case "Moved to bugs Q":
                 return '#4C8EB0';
             case "Duplicate":
-                return '#F95D1B';
+                return '#ff8358';
             case "Known limitation":
-                return '#83E7F3';
+                return '#71d6d1';
             case "Known bug":
-                return '#0EB2E2';
-            case "New":
-                return '#C7F2FF';
-            case "w4 Review/Deploy":
-                return '#A9E411';
-            case "Closed with no response":
-                return '#4300AE';
-            case "Reviewed by TS":
-                return '#21A000';
-            case "Waiting for 3rd party":
-                return '#DFC95E';
+                return '#339ecd';
+            case "Closed due no response":
+            case "Closed w/No Response":
+                return '#777ae5';
             case "Working on it":
-                return '#FFB821';
-            case "Missing Critical Data":
-                return '#F31A1A';
+                return '#ffd533';
             case "Waiting for permission to login":
-                return '#FFA99D';
-            case "Escalated from design":
-                return '#E33B7A';
+            case 'Existing Bug':
+                return '#ff9191';
             case 'Pending ⌛':
                 return '#C7F2FF';
             case 'Granted ✨':
@@ -465,11 +613,70 @@ const Preview = (props) => {
             case 'Nope ❌':
                 return '#DFC95E';
             case 'High':
+            case 'P1 - Critical':
                 return '#F31A1A';
             case 'Medium':
+            case 'P2 - High':
                 return '#FFB821';
             case 'Low':
+            case 'P3 - Fix needed':
                 return '#0AA91B';
+            //Domains
+            case 'Apps & API':
+                return '#ffd533';
+            case 'Autopilot':
+                return '#79affd';
+            case 'Linkage':
+            case 'Cheese':
+                return '#e8697d';
+            case 'Boards Core':
+                return '#d5c567';
+            case 'Client Foundations':
+            case 'Question':
+                return '#33d391';
+            case 'Account Organization':
+            case 'Product unclear':
+                return '#85d6ff';
+            case 'Users & Governance':
+            case "Users's request":
+                return '#b0dc51';
+            case 'Growth':
+                return '#fbb4f4';
+            case 'Insights':
+            case 'Security Bug':
+                return '#359970';
+            case 'Monetization':
+                return '#936fda';
+            case 'Billing- Do not use':
+            case 'Performance':
+                return '#9862a1';
+            case 'People & Interactions':
+                return '#ff7bd0';
+            case 'Server Foundations':
+                return '#99756c';
+            case 'Cross Domain':
+                return '#ff8358';
+            case 'CRM':
+                return '#175a63';
+            case 'Desktop App':
+            case 'CS Request':
+                return '#339ecd';
+            case 'Docs':
+                return '#71d6d1';
+            case 'Marketing Cluster':
+                return '#a1e3f6';
+            case 'Authorization':
+            case 'Bug':
+                return '#ff44a1';
+            case 'Projects Cluster':
+                return '#2b76e5';
+            case 'Software Cluster':
+                return '#fdbc64';
+            case 'Strategic Connections':
+                return '#ffbdbd';
+            //Type
+            case "User's misconfiguration":
+                return '#5c5c5c';
             default:
                 return '#B8B8B8';
         }
@@ -477,15 +684,26 @@ const Preview = (props) => {
 
     const getText = (column_values, targetId) => {
         const colIdx = column_values.findIndex((c) => {
-          return c.id === targetId;
+            return c.id === targetId;
         });
     
         if(colIdx !== -1){
-          return column_values[colIdx].text;
+            //console.log("searching text for: ", colIdx, " - ", targetId, " = ", column_values[colIdx].text);
+            return column_values[colIdx].text;
         }else{
-          console.log(`${targetId} doesn't exists`);
+            console.log(`${targetId} doesn't exists`);
         }
-      }
+    }
+
+    const listenTimer1 = (columnID, newValue) => {
+        clearTimeout(typingTimer1.current);
+        typingTimer1.current = setTimeout(() => updateText(columnID, newValue), 1500);
+    }
+
+    const listenTimer2 = (columnID, newValue) => {
+        clearTimeout(typingTimer2.current);
+        typingTimer2.current = setTimeout(() => updateText(columnID, newValue), 1500);
+    }
 
     return <>
         <div>
@@ -513,19 +731,19 @@ const Preview = (props) => {
                                         options={StatusOptions} />
                                     
                                 </td>
-                                <td className='liveColoring' style={{backgroundColor: getColor(liveReplicable)}}>
+                                <td className='liveColoring' style={{backgroundColor: getColor(liveDomain)}}>
                                     <Dropdown
                                         className="dropdown-stories-styles_spacing mt-1"
                                         size={Dropdown.size.SMALL}
                                         searchable={false}
                                         clearable={false}
-                                        value={liveReplicable}
-                                        onChange={(value) => { setReplicable(value); updateStatus(props.settings.dowreproducible,value.value);}}
+                                        value={liveDomain}
+                                        onChange={(value) => { setDomain(value); updateStatus(props.settings.dowdomain,value.value);}}
                                         defaultValue={{
-                                            label: 'Please fill-in',
-                                            value: 'Please fill-in'
+                                            label: 'Select a Domain',
+                                            value: ''
                                         }}
-                                        options={ReproducibleOptions}/>
+                                        options={DomainOptions}/>
                                 </td>
                                 <td className='liveColoring' style={{backgroundColor: getColor(liveLogin)}}>
                                     <Dropdown
@@ -548,12 +766,78 @@ const Preview = (props) => {
                                         searchable={false}
                                         clearable={false}
                                         value={liveSeverity}
-                                        onChange={(value) => { setPriority(value); updateStatus(props.settings.dowpriority,value.value);}}
+                                        onChange={(value) => { setSeverity(value); updateStatus(props.settings.dowseverity,value.value);}}
                                         defaultValue={{
                                             label: 'Please add Severity',
                                             value: 'Please add Severity'
                                         }}
                                         options={SeverityOptions}/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table width='100%' className="p-1 pt-0" style={{textAlign: 'center'}}>
+                        <thead style={{display: extendedPreview?'table-header-group':'none'}}>
+                            <tr>
+                                <td><strong><small>Priority</small></strong></td>
+                                <td width='130px'><strong><small>BB Account</small></strong></td>
+                                <td width='130px'><strong><small>User ID</small></strong></td>
+                                <td><strong><small>Type</small></strong></td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style={{display: extendedPreview?'table-row':'none'}}>
+                                <td className='liveColoring' style={{backgroundColor: getColor(livePriority)}}>
+                                    <Dropdown
+                                        className="dropdown-stories-styles_spacing mt-1"
+                                        size={Dropdown.size.SMALL}
+                                        searchable={false}
+                                        clearable={false}
+                                        value={livePriority}
+                                        onChange={(value) => { setPriority(value); updateStatus(props.settings.dowpriority,value.value);}}
+                                        defaultValue={{
+                                            label: 'Need to Prioritize',
+                                            value: 'Need to Prioritize'
+                                        }}
+                                        options={PriorityOptions}/>
+                                </td>
+                                <td>
+                                    <TextField
+                                        className="m-auto"
+                                        iconName="fa fa-square"
+                                        size={TextField.sizes.MEDIUM}
+                                        value={liveBB}
+                                        onChange={(value) => { setBB(value); listenTimer1(props.settings.dowbb, value);}}
+                                        wrapperClassName="monday-storybook-text-field_size"/>
+                                </td>
+                                <td>
+                                    <TextField
+                                        className="m-auto"
+                                        iconName="fa fa-square"
+                                        size={TextField.sizes.MEDIUM}
+                                        value={liveUserID}
+                                        onChange={(value) => { setUserID(value); listenTimer2(props.settings.dowuserid, value);}}
+                                        wrapperClassName="monday-storybook-text-field_size"/>
+                                </td>
+                                <td className='liveColoring' style={{backgroundColor: getColor(liveType)}}>
+                                    <Dropdown
+                                        className="dropdown-stories-styles_spacing mt-1"
+                                        size={Dropdown.size.SMALL}
+                                        searchable={false}
+                                        clearable={false}
+                                        value={liveType}
+                                        onChange={(value) => { setType(value); updateStatus(props.settings.dowtype, value.value);}}
+                                        defaultValue={{
+                                            label: 'Select a Type',
+                                            value: ''
+                                        }}
+                                        options={TypeOptions}/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colSpan={4}>
+                                    <button onClick={() => toggleExtendedPreview(!extendedPreview)}>{extendedPreview?'Show less -':'Show more +'}</button>
                                 </td>
                             </tr>
                         </tbody>

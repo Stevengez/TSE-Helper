@@ -21,7 +21,7 @@ import Editor from "./Editor/Editor";
 const DomainKey = 'DomainList';
 const monday = mondaySdk();
 const remoteMonday = mondaySdk();
-const appVersion = '2.0.0';
+const appVersion = '3.1.0';
 
 const Main = () => {
 
@@ -961,7 +961,7 @@ const Main = () => {
                         </AccordionItemButton>
                     </AccordionItemHeading>
                     <AccordionItemPanel>
-                      <p>This app aim for efficency, and keeps the request done to the API to the minimum, just requesting the needed items/columns/users.</p>
+                      <p>This app aims for efficency, and keeps the request done to the API to the minimum, just requesting the needed items/columns/users.</p>
                       <p>To avoid requesting all the monday users everytime that the live view is used, the available people to tag will be users that already commented, were tagged already or are subscribed to the item as all their information is already in the update/item.</p>
                       <p>If you still need to tag someone is not showing up in the list, please use the browser/desktop app.</p>
                     </AccordionItemPanel>
