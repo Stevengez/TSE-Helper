@@ -6,44 +6,52 @@ import { useRef } from 'react';
 
 const StatusOptions = [
     {
-        label:"Back to dev",
-        value: "Back to dev",
-        color: Label.colors.POSITIVE
+        label:"Dev Handling",
+        value: "Dev Handling"
     },{
-        label:"Move back to client",
-        value:"Move back to client",
-        color: Label.colors.NEGATIVE
+        label:"TSS Handling",
+        value:"TSS Handling"
     },{
-        label:"Waiting for reporter",
+        label:"Move back to reporter",
         value:"Move back to reporter"
-    },{
-        label:"Done",
-        value:"Done"
     },{
         label:"New ticket",
         value:"New ticket"
     },{
-        label:"Moved to bugs Q",
-        value:"Moved to bugs Q"
+        label:"Move back to client",
+        value:"Move back to client"
     },{
-        label:"Duplicate",
-        value:"Duplicate"
-    },{
-        label:"Known limitation",
-        value:"Known limitation"
-    },{
-        label:"Known bug",
-        value:"Known bug"
-    },{
-        label:"Closed due no response",
-        value:"Closed due no response"
-    },{
-        label:"Working on it",
-        value:"Working on it"
-    },{
-        label:"Waiting for permission to login",
-        value:"Waiting for permission to login"
+        label:"Done",
+        value:"Done"
     }
+    // ,{
+    //     label:"Moved to bugs Q",
+    //     value:"Moved to bugs Q"
+    // }
+    // ,{
+    //     label:"Duplicate",
+    //     value:"Duplicate"
+    // }
+    // ,{
+    //     label:"Known limitation",
+    //     value:"Known limitation"
+    // }
+    // ,{
+    //     label:"Known bug",
+    //     value:"Known bug"
+    // }
+    // ,{
+    //     label:"Closed due no response",
+    //     value:"Closed due no response"
+    // }
+    // ,{
+    //     label:"Working on it",
+    //     value:"Working on it"
+    // }
+    // ,{
+    //     label:"Waiting for permission to login",
+    //     value:"Waiting for permission to login"
+    // }
 ];
 const LoginOptions = [
     {
@@ -574,6 +582,7 @@ const Preview = (props) => {
     const getColor = (selection) => {
         if(!selection) return 'gray';
         switch(selection.value){
+            case "Dev Handling":
             case "Back to dev":
                 return '#79affd';
             case "Move back to client":
@@ -585,6 +594,7 @@ const Preview = (props) => {
             case "New ticket":
                 return '#797e93';
             case "Moved to bugs Q":
+            case "TSS Handling":
                 return '#4C8EB0';
             case "Duplicate":
                 return '#ff8358';

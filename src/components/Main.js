@@ -21,7 +21,7 @@ import Editor from "./Editor/Editor";
 const DomainKey = 'DomainList';
 const monday = mondaySdk();
 const remoteMonday = mondaySdk();
-const appVersion = '3.1.0';
+const appVersion = '3.4.0';
 
 const Main = () => {
 

@@ -266,8 +266,8 @@ const Editor = (props) => {
         let variables = {
             itemName: newDow_name,
             board: parseInt(props.settings.dowID),
-            //group: "new_group41530", // Static Selection of "Untouched" group
-            group: "new_group27854", // Static Test Selection of "Untouched" group
+            group: "new_group41530", // Static Selection of "Untouched" group
+            //group: "new_group27854", // Static Test Selection of "Untouched" group
             valuesPack: JSON.stringify(jsonValue)
         }
 
