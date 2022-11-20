@@ -12,18 +12,27 @@
     max-width: 100%;
 }
 
+.LiveContainer::-webkit-scrollbar {
+    display: none;
+}
+
+.LiveContainer {
+    background-color: #292f4f;
+    scrollbar-width: none;
+    border-radius: 0.5rem;
+}
+
 .UpdateContainer::-webkit-scrollbar {
     display: none;
 }
 
 .UpdateContainer {
-    position: relative;
-    box-sizing: border-box;
+    max-width: 100%;
+    max-height: 100%;
+    flex-grow: 1;
     border-radius: 0.5rem;
-    min-height: calc(100vh - 12rem);
-    max-height: calc(100vh - 12rem);
     scrollbar-width: none;
-    overflow-y: auto;
+    overflow: auto;
 }
 
 .liveColoring {
@@ -115,10 +124,6 @@
     padding: 14px 15px 7px;
     line-height: 20px;
     font-weight: 300;
-}
-
-.Reply {
-    
 }
 
 .reply_profile {
@@ -243,6 +248,10 @@
 .col-md-sm { grid-template-columns: auto; }
 .col-sm-dm { grid-template-columns: auto; }
 .col-span-2 { grid-column: span 2; }
+
+/* Scroll Hack */
+.noscroll::-webkit-scrollbar { display: none; }
+.noscroll { scrollbar-width: none; }
 
 /* Premade Paddings  */
 .p-0 { padding: 0; }

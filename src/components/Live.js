@@ -29,14 +29,9 @@ const Live = () => {
     },[]);
 
     return (
-    <div style={{backgroundColor: '#181b34', minHeight: '100vh'}} className="Container d-flex d-col-dir px-3 pb-3 bg-white">
-        <div>
-            <h2 className='tx-white'>{name.length > 50 ? name.substring(0,50)+'...':name}</h2>
-            <div>
-                <Preview settings={settings} context={context} setName={setName} monday={monday} remoteMonday={remoteMonday} />
-            </div>
+        <div className="LiveContainer px-2 pb-2 noscroll">
+            <Preview settings={settings} context={context} setName={setName} monday={monday} remoteMonday={remoteMonday} />
         </div>
-    </div>
     );
 }
 

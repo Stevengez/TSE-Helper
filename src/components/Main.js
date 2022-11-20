@@ -16,12 +16,12 @@ import {
   AccordionItemButton,
   AccordionItemPanel 
 } from 'react-accessible-accordion';
-import Editor from "./Editor/Editor";
 
 const DomainKey = 'DomainList';
+const MobileDomainKey = 'MobDomainList';
 const monday = mondaySdk();
 const remoteMonday = mondaySdk();
-const appVersion = '3.4.0';
+const appVersion = '3.7.0';
 
 const Main = () => {
 
@@ -31,8 +31,12 @@ const Main = () => {
   const [boardData, setData] = useState();
   const [userName, setName] = useState('...');
   const [userId, setUserId] = useState();
-  const [domainGroups, setDomainGroups] = useState([]);
-  const [syncDomains, setSyncDom] = useState([]);
+  const [extUserName, setExtName] = useState();
+  const [DowDomainGroups, setDowDomainGroups] = useState([]);
+  const [syncDowDomains, setSyncDowDom] = useState([]);
+
+  const [MobDomainGroups, setMobDomainGroups] = useState([]);
+  const [syncMobDomains, setSyncMobDom] = useState([]);
   
   const settingsRef = useRef();
         settingsRef.current = settings;
@@ -45,6 +49,14 @@ const Main = () => {
 
   const useridRef = useRef();
         useridRef.current = userId;
+
+  const[subBoardDow, setSubDow] = useState();
+  const[subBoardMob, setSubMob] = useState();
+
+  const subBoardDowRef = useRef();
+        subBoardDowRef.current = subBoardDow;
+  const subBoardMobRef = useRef();
+        subBoardMobRef.current = subBoardMob;
   
   // Input Values
   const [singleDow, setSingleDow] = useState("");
@@ -52,14 +64,20 @@ const Main = () => {
   //Live Data
   const [myItems, setMyItems] = useState([]);
   const [loading, toggleLoading] = useState(false);
+  const [loadingMob, toggleLoadingMob] = useState(false);
   const [writing, toggleWriting] = useState(false);
+  const [writingMob, toggleWritingMob] = useState(false);
   
   const myItemsRef = useRef();
         myItemsRef.current = myItems;
   const loadingRef = useRef();
         loadingRef.current = loading;
+  const loadingMobRef = useRef();
+        loadingMobRef.current = loadingMob;
   const writingRef = useRef();
         writingRef.current = writing;
+  const writingMobRef = useRef();
+        writingMobRef.current = writingMob;
   
   useEffect(() => {
     const uSettings = monday.listen("settings", res => {
@@ -84,7 +102,14 @@ const Main = () => {
     monday.storage.instance.getItem(DomainKey).then((res) => {
       if(res.data.value){
         const restoredValues = JSON.parse(res.data.value);
-        setSyncDom(restoredValues);
+        setSyncDowDom(restoredValues);
+      }
+    });
+
+    monday.storage.instance.getItem(MobileDomainKey).then((res) => {
+      if(res.data.value){
+        const restoredValues = JSON.parse(res.data.value);
+        setSyncMobDom(restoredValues);
       }
     });
     
@@ -157,7 +182,7 @@ const Main = () => {
   // Get Domain Group List
   useEffect(() => {
     if(settings){
-      if(settings.externaldow && settings.apitoken.trim() === ""){
+      if(settings.apitoken.trim() === ""){
         monday.execute("notice", { 
           message: 'You need to set your apitoken.',
           type: "error",
@@ -166,17 +191,20 @@ const Main = () => {
         return;
       }
 
-      let mondayInterface = monday;
-      if(settings.externaldow){
-        mondayInterface = remoteMonday;
-      }
+      let mondayInterface = remoteMonday;
 
       if(settings.dowID && settings.dowID.trim() !== ""){
         mondayInterface.api(`query ($board: [Int]){
           me {
             id
+            name
           }
           boards(ids: $board){
+            columns(ids: ["subitems"]){
+              id
+              title
+              settings_str
+            }
             groups {
               id
               title
@@ -188,13 +216,16 @@ const Main = () => {
           }
         }).then(result => {
           // Set User info
-          if(settings && settings.externaldow){
-            setUserId(result.data.me.id);
-            console.log("ID: ", result.data.me.id);
-          }
+          if(settings) setUserId(result.data.me.id);
+          if(settings) setExtName(result.data.me.name);
 
           let groups = [];
           if(result.data.boards.length > 0){
+            // Set Subitems Board Info
+            if(getSubBoard(result.data.boards[0].columns) !== undefined){
+              setSubDow(getSubBoard(result.data.boards[0].columns)[0]);
+            }
+
             if(result.data.boards[0].groups.length > 0){
               result.data.boards[0].groups.forEach((g) => {
                 groups.push({
@@ -202,7 +233,7 @@ const Main = () => {
                   value: g.id
                 });
               });
-              setDomainGroups(groups);
+              setDowDomainGroups(groups);
             }else{
               monday.execute("notice", { 
                 message: `No Domains found for Board [${settings.dowID}], is it correct?`,
@@ -229,6 +260,69 @@ const Main = () => {
       }else{
         monday.execute("notice", { 
           message: `Unable to retrieve domains, DoW Board is not set`,
+          type: "error", // or "error" (red), or "info" (blue)
+          timeout: 3000,
+        });
+      }
+
+      // Mobile Groups Retrieval
+      if(settings.mobileid && settings.mobileid.trim() !== ""){
+        mondayInterface.api(`query ($board: [Int]){
+          boards(ids: $board){
+            columns(ids: ["subitems"]){
+              id
+              title
+              settings_str
+            }
+            groups {
+              id
+              title
+            }
+          }
+        }`, {
+          variables: {
+            board: parseInt(settings.mobileid)
+          }
+        }).then(result => {
+          let groups = [];
+          if(result.data.boards.length > 0){
+            // Set Subitems Board Info
+            setSubMob(getSubBoard(result.data.boards[0].columns));
+
+            if(result.data.boards[0].groups.length > 0){
+              result.data.boards[0].groups.forEach((g) => {
+                groups.push({
+                  label: g.title,
+                  value: g.id
+                });
+              });
+              setMobDomainGroups(groups);
+            }else{
+              monday.execute("notice", { 
+                message: `No Domains found for Board [${settings.mobileid}], is it correct?`,
+                type: "error", // or "error" (red), or "info" (blue)
+                timeout: 5000,
+              });
+              console.log("No domains found found for: ", settings.mobileid);
+            }
+          }else{
+            monday.execute("notice", { 
+              message: `Board [${settings.mobileid}] not found, is it correct?`,
+              type: "error", // or "error" (red), or "info" (blue)
+              timeout: 5000,
+            });
+            console.log("No board found for: ", settings.mobileid);
+          }
+        }).catch(error =>{
+          monday.execute("notice", { 
+            message: `Permission denied, check api token`,
+            type: "error", // or "error" (red), or "info" (blue)
+            timeout: 5000,
+          });
+        });
+      }else{
+        monday.execute("notice", { 
+          message: `Unable to retrieve domains, Mobile Board is not set`,
           type: "error", // or "error" (red), or "info" (blue)
           timeout: 3000,
         });
@@ -275,7 +369,6 @@ const Main = () => {
     });
   }
 
-
   const settingsLiveValidate = () => {
     let errorStrig = 'Please make sure to fill these settings values: \n';
     let errorPresent = false;
@@ -292,23 +385,8 @@ const Main = () => {
       errorPresent = true;
     }
 
-    if(!settings.dowstatus || settings.dowstatus.trim() === ""){
-      errorStrig += "* [DoW Col ID] Status\n";
-      errorPresent = true;
-    }
-
-    if(!settings.dowlogin || settings.dowlogin.trim() === ""){
-      errorStrig += "* [DoW Col ID] Login Permission\n";
-      errorPresent = true;
-    }
-
-    if(!settings.dowreproducible || settings.dowreproducible.trim() === ""){
-      errorStrig += "* [DoW Col ID] Reproducible\n";
-      errorPresent = true;
-    }
-
-    if(!settings.dowpriority || settings.dowpriority.trim() === ""){
-      errorStrig += "* [DoW Col ID] Priority\n";
+    if(!settings.dowzdticket || settings.dowzdticket.trim() === ""){
+      errorStrig += "* [DoW Col ID] Reporter by BB\n";
       errorPresent = true;
     }
 
@@ -332,45 +410,53 @@ const Main = () => {
       errorPresent = true;
     }
 
-    if(!settings.slug || settings.slug.trim() === ""){
-      errorStrig += "* Account Slug\n";
+    if(!settings.dowpersonid || settings.dowpersonid.trim() === ""){
+      errorStrig += "* [DoW Col ID] Reporter by BB\n";
       errorPresent = true;
     }
 
-    if(!settings.dowstatus || settings.dowstatus.trim() === ""){
-      errorStrig += "* [DoW Col ID] Status\n";
+    if(!settings.dowzdticket || settings.dowzdticket.trim() === ""){
+      errorStrig += "* [DoW Col ID] ZD Ticket ID\n";
       errorPresent = true;
     }
 
-    if(!settings.dowbb || settings.dowbb.trim() === ""){
-      errorStrig += "* [DoW Col ID] BigBrain\n";
+    if(!settings.dowsubreporter || settings.dowsubreporter.trim() === ""){
+      errorStrig += "* [DoW Sub. Col ID] Reporter\n";
       errorPresent = true;
     }
 
-    if(!settings.dowlogin || settings.dowlogin.trim() === ""){
-      errorStrig += "* [DoW Col ID] Login Permission\n";
+    if(!settings.dowsubzdlink || settings.dowsubzdlink.trim() === ""){
+      errorStrig += "* [DoW Sub. Col ID] ZD Ticket ID\n";
       errorPresent = true;
     }
 
-    if(!settings.dowreproducible || settings.dowreproducible.trim() === ""){
-      errorStrig += "* [DoW Col ID] Reproducible\n";
+    // Mobile
+    if(!settings.mobileid || settings.mobileid.trim() === ""){
+      errorStrig += "* Mobile Board ID\n";
       errorPresent = true;
     }
 
-    if(!settings.dowpriority || settings.dowpriority.trim() === ""){
-      errorStrig += "* [DoW Col ID] Priority\n";
+    if(!settings.mobilereporter || settings.mobilereporter.trim() === ""){
+      errorStrig += "* [Mobile Col ID] ZD Reporter\n";
       errorPresent = true;
     }
 
-    if(!settings.helperstatus || Object.keys(settings.helperstatus).length === 0){
-      errorStrig += "* [Local Board] Status\n";
+    if(!settings.mobilezdticket || settings.mobilezdticket.trim() === ""){
+      errorStrig += "* [Mobile Col ID] ZD Ticket\n";
       errorPresent = true;
     }
 
-    if(!settings.helperdowstatus || Object.keys(settings.helperdowstatus).length === 0){
-      errorStrig += "* [Local Board] DoW Status\n";
+    if(!settings.mobilesubreporter || settings.mobilesubreporter.trim() === ""){
+      errorStrig += "* [Mobile Sub. Col ID] Reporter\n";
       errorPresent = true;
     }
+
+    if(!settings.mobilesubzdticket || settings.mobilesubzdticket.trim() === ""){
+      errorStrig += "* [Mobile Sub. Col ID] ZD Tickete\n";
+      errorPresent = true;
+    }
+
+    // Local Board
 
     if(!settings.helperdowitemid || Object.keys(settings.helperdowitemid).length === 0){
       errorStrig += "* [Local Board] DoW ItemID\n";
@@ -384,11 +470,6 @@ const Main = () => {
 
     if(!settings.helperzdlink || Object.keys(settings.helperzdlink).length === 0){
       errorStrig += "* [Local Board] ZD Link\n";
-      errorPresent = true;
-    }
-
-    if(!settings.helperdate || Object.keys(settings.helperdate).length === 0){
-      errorStrig += "* [Local Board] Followup Date\n";
       errorPresent = true;
     }
 
@@ -423,21 +504,22 @@ const Main = () => {
     }
 
     toggleLoading(true);
-    let mondayInterface;
-    if(settings.externaldow){
-      mondayInterface = remoteMonday;
-    }else{
-      mondayInterface = monday;
-    }
+    let mondayInterface = remoteMonday;
 
     mondayInterface.api(`query ($item: [Int]) {
       items(ids: $item) {
         id
         name
+        parent_item {
+          name
+        }
         column_values {
           id
           value
           text
+        }
+        board {
+          id
         }
       }
     }
@@ -448,9 +530,21 @@ const Main = () => {
     }).then(res => {
       const items = res.data.items;
       if(items.length > 0){
-        setMyItems([...myItemsRef.current, ...items]);
-        toggleLoading(false);
-        FillBoard(true);
+        console.log("res", res);
+        const item = items[0];
+        if(item.board.id != settings.mobileid){
+          if(item.parent_item) item.isSubitem =  true;
+          if(item.name == "+1" && item.isSubitem) item.name = item.parent_item.name;
+          setMyItems([...myItemsRef.current, item]);
+          toggleLoading(false);
+          FillBoard(false, true);
+        }else{
+          if(item.parent_item) item.isSubitem =  true;
+          if(item.name == "+1" && item.isSubitem) item.name = item.parent_item.name;
+          setMyItems([...myItemsRef.current, item]);
+          toggleLoading(false);
+          FillBoard(true, true);
+        }
       }else{
         console.log(`Dow [${singleDow}] not found.`);
         monday.execute("notice", { 
@@ -477,37 +571,56 @@ const Main = () => {
 
     if(settingsRef.current.dowID !== ""){
       toggleLoading(true);
-      getPageItems().then((_) => {
+      getPageItems(settingsRef.current.dowID, syncDowDomains, false).then((_) => {
         toggleLoading(false);
-        FillBoard();
+        FillBoard(false);
       });
     }else{
       console.log("Sync pending");
     }
   }
 
-  const compareItem = (local, remote) => {
-    if(getText(local, Object.keys(settings.helperdowstatus)[0]) === getText(remote, settings.dowstatus)) return false;
-    return true;
+  const SyncMobData = () => {
+    const errorString = settingsValidate();
+    if(errorString.length > 0){
+      monday.execute("notice", { 
+        message: errorString,
+        type: "error",
+        timeout: 5000,
+      });
+      return;
+    }
+
+    if(settingsRef.current.mobileid !== ""){
+      toggleLoadingMob(true);
+      getPageItems(settingsRef.current.mobileid, syncMobDomains, true).then((_) => {
+        toggleLoadingMob(false);
+        FillBoard(true);
+      });
+    }else{
+      console.log("Sync pending");
+    }
   }
+
+  // const compareItem = (local, remote) => {
+  //   if(getText(local, Object.keys(settings.helperdowstatus)[0]) === getText(remote, settings.dowstatus)) return false;
+  //   return true;
+  // }
 
   const compareItems = () => {
     const localCopy = boardDataRef.current.slice();
     const remoteCopy = myItemsRef.current.slice();
     
     const RemotePendingCreation = [];
-    const RemotePendingUpdate = [];
 
     while(remoteCopy.length > 0){
       let c = 0;
       let found = false;
+      
       for(let local_Item of localCopy){
         //const lid = getText(local_Item.column_values, settings.helperdowitemid);
         if(remoteCopy[0].id === getText(local_Item.column_values, Object.keys(settings.helperdowitemid)[0])){
           found = true;
-          if(compareItem(local_Item.column_values, remoteCopy[0].column_values)){
-            RemotePendingUpdate.push({...remoteCopy[0], localID: local_Item.id}); 
-          }
           break;
         }
         c++;
@@ -527,79 +640,72 @@ const Main = () => {
       remoteCopy.splice(0, 1);
     } 
 
-    return { create: RemotePendingCreation, update: RemotePendingUpdate};
+    return { create: RemotePendingCreation };
   }
 
-  const FillBoard = (isSingleSync = false) => {
+  const FillBoard = (isMobile, isSingleSync = false) => {
     const { create, update } = compareItems();
 
     // Create Non Existing
     const pendingWorks = [];
-    toggleWriting(true);
-
-    if(settingsRef.current.updateExisting){
-      update.forEach((dow) => {
-        const doWStatus = getText(dow.column_values, settings.dowstatus);
-        const jsonValue = {
-          label: doWStatus
-        };
-  
-        const work = monday.api(`mutation ($board: Int!, $item: Int, $column: String!, $value: JSON!) {
-          change_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value, create_labels_if_missing: true){
-            id
-          }
-        }`, {
-          variables: {
-            board: parseInt(context.boardIds),
-            item: parseInt(dow.localID),
-            column: Object.keys(settings.helperdowstatus)[0],
-            value: JSON.stringify(jsonValue)
-          }
-        });
-        
-        pendingWorks.push(work);
-      });
+    if(isMobile && !isSingleSync){
+      toggleWritingMob(true);
+    }else{
+      toggleWriting(true);
     }
 
     create.forEach((dow) => {
-      const localStatus = SelectStatusByStatus(getText(dow.column_values, settings.dowstatus));
-      const doWStatus = getText(dow.column_values, settings.dowstatus);
-      const groupTarget = SelectGroupByStatus(doWStatus);
+      console.log("Is mobile: ", isMobile, " is subitem: ", dow.isSubitem, "searched id: ", settings.mobilesubzdticket);
+      const dowZDTicketID = getText(dow.column_values, isMobile?(dow.isSubitem?(settings.mobilesubzdticket):(settings.mobilezdticket)):(dow.isSubitem?(settings.dowsubzdlink):(settings.dowzdticket)));
       const jsonValue = {};
 
-      // Set Date
-      jsonValue[Object.keys(settings.helperdate)[0]] = {
-        date: getToday()
-      };
-
-      // Set Local Status
-      jsonValue[Object.keys(settings.helperstatus)[0]] = {
-        label:localStatus
-      };
-
-      // Set DoW Status
-      jsonValue[Object.keys(settings.helperdowstatus)[0]] = {
-        label:doWStatus
-      };
-
       // Set DoW Link
-      jsonValue[Object.keys(settings.helperdowlink)[0]] = {
-        url:`https://${settingsRef.current.slug}.monday.com/boards/${settingsRef.current.dowID}/pulses/${dow.id}`,
-        text: 'DoW Board'
-      };
+      if(isMobile){
+        jsonValue[Object.keys(settings.helperdowlink)[0]] = {
+          url:`https://monday.monday.com/boards/${settingsRef.current.mobileid}/pulses/${dow.id}`,
+          text: 'Bug Board (Mobile)'
+        };
+      }else{
+        jsonValue[Object.keys(settings.helperdowlink)[0]] = {
+          url:`https://monday.monday.com/boards/${dow.board?dow.board.id:settingsRef.current.dowID}/pulses/${dow.id}`,
+          text: 'DoW Board'
+        };
+      }
+
+      // Set ZD Link
+      if(dowZDTicketID){
+        if(isMobile){
+          jsonValue[Object.keys(settings.helperzdlink)[0]] = {
+            url:`https://monday.zendesk.com/agent/tickets/${dowZDTicketID}`,
+            text: 'ZD Link'
+          };
+        }else{
+          if(dow.isSubitem){
+            jsonValue[Object.keys(settings.helperzdlink)[0]] = {
+              url:`${dowZDTicketID}`,
+              text: 'ZD Link'
+            };
+          }else{
+            jsonValue[Object.keys(settings.helperzdlink)[0]] = {
+              url:`https://monday.zendesk.com/agent/tickets/${dowZDTicketID}`,
+              text: 'ZD Link'
+            };
+          }
+        }
+      }
 
       // Set DoW RemoteID
       jsonValue[Object.keys(settings.helperdowitemid)[0]] = `${dow.id}`;
 
-      const work = monday.api(`mutation ($itemName: String, $board: Int!, $group: String, $valuesPack: JSON) {
-        create_item(item_name: $itemName, board_id: $board, group_id: $group, column_values: $valuesPack, create_labels_if_missing: true){
+      const work = monday.api(`mutation ($itemName: String, $board: Int!, $group: String!, $valuesPack: JSON) {
+        create_item(item_name: $itemName, board_id: $board, group_id: $group, column_values: $valuesPack){
           id
         }
       }`, {
         variables: {
           itemName: dow.name,
           board: parseInt(context.boardIds),
-          group: groupTarget,
+          group: settings.backtodev,
           valuesPack: JSON.stringify(jsonValue)
         }
       });
@@ -608,7 +714,12 @@ const Main = () => {
     });
     
     Promise.all(pendingWorks).then((values) => {
-      toggleWriting(false);
+      if(isMobile && !isSingleSync){
+        toggleWritingMob(false);
+      }else{
+        toggleWriting(false);
+      }
+      
       let resultMessage = getFillMessageResult(create, update, isSingleSync);
       
       monday.execute("notice", { 
@@ -669,13 +780,13 @@ const Main = () => {
     return resultMessage;
   }
 
-  const getToday = () => {
-    const date = new Date();
-    const month = date.getMonth()+1;
-    const day = date.getDate()+1;
-    const year = date.getFullYear();
-    return year+'-'+month+'-'+day;
-  }
+  // const getToday = () => {
+  //   const date = new Date();
+  //   const month = date.getMonth()+1;
+  //   const day = date.getDate()+1;
+  //   const year = date.getFullYear();
+  //   return year+'-'+month+'-'+day;
+  // }
 
   const getText = (column_values, targetId) => {
     const colIdx = column_values.findIndex((c) => {
@@ -689,45 +800,70 @@ const Main = () => {
     }
   }
 
-  const SelectStatusByStatus = (status) => {
-    switch(status){
-      case 'Back to dev':
-      case 'New ticket':
-        return 'Follow Up';
-      case 'Move back to reporter':
-        return 'Pending';
-      case 'Moved to bugs Q':
-        return 'Long Term Bug';
-      default:
-        return 'Follow Up';
-    }
-  }
+  const getValue = (column_values, targetId) => {
+    const colIdx = column_values.findIndex((c) => {
+      return c.id === targetId;
+    });
 
-  const SelectGroupByStatus = (status) => {
-    switch(status){
-      case 'Back to dev':
-      case 'New ticket':
-        return settings.backtodev;
-      case 'Move back to reporter':
-        return settings.backtoreporter;
-      case 'Moved to bugs Q':
-        return settings.movedtobugs;
-      default:
-        return settings.backtodev;
-    }
-    
-  }
-
-  const getPageItems = async () => {
-    // Select mondayapi based on settings
-    let mondayInterface;
-    if(settings.externaldow){
-      mondayInterface = remoteMonday;
+    if(colIdx !== -1){
+      return column_values[colIdx].value;
     }else{
-      mondayInterface = monday;
+      console.log(`${targetId} doesn't exists`);
+      return undefined;
     }
+  }
 
-    for(let domain of syncDomains){
+  const getSubBoard = (column_values) => {
+    const colIdx = column_values.findIndex((c) => {
+        return c.id === 'subitems';
+    });
+
+    if(colIdx !== -1){
+        if(column_values[colIdx]){
+            let parsed = JSON.parse(column_values[colIdx].settings_str);
+            return parsed.boardIds;
+        }else{
+            return undefined;
+        }
+        
+    }
+  }
+
+  // const SelectStatusByStatus = (status) => {
+  //   switch(status){
+  //     case 'Back to dev':
+  //     case 'New ticket':
+  //       return 'Follow Up';
+  //     case 'Move back to reporter':
+  //       return 'Pending';
+  //     case 'Moved to bugs Q':
+  //       return 'Long Term Bug';
+  //     default:
+  //       return 'Follow Up';
+  //   }
+  // }
+
+  // const SelectGroupByStatus = (status) => {
+  //   switch(status){
+  //     case 'Back to dev':
+  //     case 'New ticket':
+  //       return settings.backtodev;
+  //     case 'Move back to reporter':
+  //       return settings.backtoreporter;
+  //     case 'Moved to bugs Q':
+  //       return settings.movedtobugs;
+  //     default:
+  //       return settings.backtodev;
+  //   }
+    
+  // }
+
+  const getPageItems = async (boardid, domaingroup, isMobile = false) => {
+    // Select mondayapi based on settings
+    let mondayInterface = remoteMonday;
+
+    //Parents
+    for(let domain of domaingroup){
       const result =  await mondayInterface.api(`query ($board: [Int], $groups: [String], $columns: [String]) {
           boards (ids: $board){
             groups(ids: $groups) {
@@ -746,11 +882,11 @@ const Main = () => {
             }    
           }  
         }
-      `, { 
+      `, {
         variables: {
-          board: parseInt(settingsRef.current.dowID),
+          board: parseInt(boardid),
           groups: [domain.value],
-          columns: [settings.dowstatus]
+          columns: [isMobile?settings.mobilezdticket:settings.dowzdticket, isMobile?settings.mobilereporter:settings.dowpersonid]
         }
       });
 
@@ -759,11 +895,63 @@ const Main = () => {
 
       if(items.length > 0){
         const newBatch  = items.filter((i) => {
-          return i.creator.id === useridRef.current;
+          const personValue = getValue(i.column_values, isMobile?settings.mobilereporter:settings.dowpersonid);
+          if(personValue && i.creator){
+            const persons = JSON.parse(personValue);
+            if(persons.personsAndTeams){
+              const isBBValid = persons.personsAndTeams.find((person) => { return person.id == useridRef.current});
+              return i.creator.id === useridRef.current || isBBValid !== undefined;
+            }
+          }else{
+            if(i.creator){
+              return i.creator.id === useridRef.current;
+            }else{
+              return false;
+            }
+          }
         });
         setMyItems([...myItemsRef.current, ...newBatch]);
       }else{
         console.log(`[${domain}] contained no items.`);
+      }
+    }
+
+    // SubItems
+    if(subBoardDowRef.current !== undefined){
+      const result =  await mondayInterface.api(`query ($board: Int!, $column: String!, $username: String! $columns: [String]) {
+        items_by_column_values(board_id: $board, column_id: $column, column_value: $username){
+          id
+          name
+          parent_item {
+            name
+          }
+          column_values(ids: $columns) {
+            id
+            value
+            text
+          }
+        }
+      }`, {
+        variables: {
+          board: parseInt(subBoardDowRef.current),
+          username: extUserName?extUserName:userName,
+          column: isMobile?settings.mobilesubreporter:settings.dowsubreporter,
+          columns: [isMobile?settings.mobilesubzdticket:settings.dowsubzdlink]
+        }
+      });
+      
+      const items = result.data.items_by_column_values;
+    
+      if(items.length > 0){
+        items.forEach((i) => {
+          if(i.name.trim() == "+1"){
+            i.name = i.parent_item.name;
+          }
+          i.isSubitem = true;
+        })
+        setMyItems([...myItemsRef.current, ...items]);
+      }else{
+        console.log(`[Subitems] contained no items.`);
       }
     }
   }
@@ -782,7 +970,7 @@ const Main = () => {
                   </AccordionItemButton>
               </AccordionItemHeading>
               <AccordionItemPanel>
-                  <p>TSE Helper is a tool developed to help you with follow up and creation of DoW's (in the future also Bugs and Cheeses).</p>
+                  <p>TSE Helper is a tool developed to help you with follow up of DoW's and Mobile Bugs.</p>
               </AccordionItemPanel>
           </AccordionItem>
 
@@ -793,20 +981,34 @@ const Main = () => {
                   </AccordionItemButton>
               </AccordionItemHeading>
               <AccordionItemPanel>
-                  <p>First ensure that the settings are all in place, if you are working from your demo account make sure to enable the option "External DoW Board" and add your API Token. </p>
-                  <p>Done? Now you can select which domains will be used to import dow's from the DoW Board.</p>
+                  <p>First ensure that the settings are all in place, and add your monday.monday API Token. </p>
+                  <p>Done? Now you can select which groups will be used to import dow's or mobile bugs.</p>
                   <div className="mb-2">
                   <Select
                         isMulti
                         isSearchable
                         isClearable
-                        value={syncDomains}
-                        placeholder='Select which domains to sync'
-                        onChange={(values) => {monday.storage.instance.setItem(DomainKey, JSON.stringify(values)); setSyncDom(values)}}
-                        options={domainGroups} />
+                        value={syncDowDomains}
+                        placeholder='Select which groups to sync'
+                        onChange={(values) => {monday.storage.instance.setItem(DomainKey, JSON.stringify(values)); setSyncDowDom(values)}}
+                        options={DowDomainGroups} />
                   </div>
-                  <Button onClick={SyncDowData} loading={loading||writing}>
-                    <strong>Sync my &nbsp;DoW cases</strong>
+                  <Button onClick={SyncDowData} loading={loading||writing} disabled={loadingMob||writingMob}>
+                    <strong>Sync my&nbsp;DoW cases</strong>
+                  </Button>
+                  
+                  <div className="mb-2 mt-2">
+                  <Select
+                        isMulti
+                        isSearchable
+                        isClearable
+                        value={syncMobDomains}
+                        placeholder='Select which groups to sync'
+                        onChange={(values) => {monday.storage.instance.setItem(MobileDomainKey, JSON.stringify(values)); setSyncMobDom(values)}}
+                        options={MobDomainGroups} />
+                  </div>
+                  <Button onClick={SyncMobData} loading={loadingMob||writingMob} disabled={loading||writing}>
+                    <strong>Sync Mobile cases</strong>
                   </Button>
               </AccordionItemPanel>
           </AccordionItem>
@@ -820,7 +1022,7 @@ const Main = () => {
               <AccordionItemPanel>
 
                 <Accordion allowZeroExpanded>
-                  <AccordionItem>
+                  {/* <AccordionItem>
                       <AccordionItemHeading>
                           <AccordionItemButton>
                               DoW live view 
@@ -843,7 +1045,7 @@ const Main = () => {
                           </div>
                         </div>
                       </AccordionItemPanel>
-                  </AccordionItem>
+                  </AccordionItem> */}
 
                   <AccordionItem>
                       <AccordionItemHeading>
@@ -877,7 +1079,8 @@ const Main = () => {
                           </AccordionItemButton>
                       </AccordionItemHeading>
                       <AccordionItemPanel>
-                        <Editor statusSelector={SelectStatusByStatus} groupSelector={SelectGroupByStatus} today={getToday} toggleWriting={toggleWriting} writing={writing} loading={loading} helperboard={contextRef.current?contextRef.current.boardIds:'NoBoardDefined'} domainGroups={domainGroups} monday={monday} remoteMonday={remoteMonday} settings={settings} />
+                        {/* <Editor statusSelector={SelectStatusByStatus} groupSelector={SelectGroupByStatus} today={getToday} toggleWriting={toggleWriting} writing={writing} loading={loading} helperboard={contextRef.current?contextRef.current.boardIds:'NoBoardDefined'} DowDomainGroups={DowDomainGroups} monday={monday} remoteMonday={remoteMonday} settings={settings} /> */}
+                        Please use Little Brain to create new DoW's.
                       </AccordionItemPanel>
                   </AccordionItem>
                 </Accordion>
@@ -911,11 +1114,23 @@ const Main = () => {
                     </AccordionItemHeading>
                     <AccordionItemPanel>
                       <p>Yes there is!</p>
-                      <p>Please take a look <a href="">here</a>.</p>
+                      <p>Please take a look <a href="https://www.loom.com/share/5389b56d4fa849fb84735ffc5764dff9" target="_blank">here</a>.</p>
                     </AccordionItemPanel>
                   </AccordionItem>
 
                   <AccordionItem>
+                    <AccordionItemHeading>
+                        <AccordionItemButton>
+                            How to setup Chrome Extension?
+                        </AccordionItemButton>
+                    </AccordionItemHeading>
+                    <AccordionItemPanel>
+                      <p>With the Pulse Overview chrome extension TSE Helper works even better, by clicking a link that takes you the DoW board, will show you a pop up window to review the ticket there without leaving your local board.</p>
+                      <p>To learn how to setup the extension please take a look: <a href="" target="_blank">here</a>.</p>
+                    </AccordionItemPanel>
+                  </AccordionItem>
+
+                  {/* <AccordionItem>
                     <AccordionItemHeading>
                         <AccordionItemButton>
                             Why not update by default?
@@ -927,9 +1142,9 @@ const Main = () => {
 
                       If the tool updates the information for you then you may forget to actually do the steps required by the new status.
                     </AccordionItemPanel>
-                  </AccordionItem>
+                  </AccordionItem> */}
 
-                  <AccordionItem>
+                  {/* <AccordionItem>
                     <AccordionItemHeading>
                         <AccordionItemButton>
                             Why is an update that says "Do not delete" being created with my DoWs?
@@ -940,9 +1155,9 @@ const Main = () => {
                       an update's body.</p><p>In order to workaround that, first a "dummy" update is created to upload the images needed and then the actual DOW update is created with reference to those images uploaded in the previous "dummy" update.</p>
                       <p>If that update gets deleted then the images as well.</p> 
                     </AccordionItemPanel>
-                  </AccordionItem>
+                  </AccordionItem> */}
 
-                  <AccordionItem>
+                  {/* <AccordionItem>
                     <AccordionItemHeading>
                         <AccordionItemButton>
                             Can I tag people in my replies from the Live view?
@@ -965,7 +1180,7 @@ const Main = () => {
                       <p>To avoid requesting all the monday users everytime that the live view is used, the available people to tag will be users that already commented, were tagged already or are subscribed to the item as all their information is already in the update/item.</p>
                       <p>If you still need to tag someone is not showing up in the list, please use the browser/desktop app.</p>
                     </AccordionItemPanel>
-                  </AccordionItem>
+                  </AccordionItem> */}
               </Accordion> 
               </AccordionItemPanel>
           </AccordionItem>

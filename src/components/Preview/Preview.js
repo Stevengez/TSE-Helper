@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Dropdown, Label, TextField } from "monday-ui-react-core";
+import { Dropdown, TextField } from "monday-ui-react-core";
 import Update from './Update';
-import { getByText } from '@testing-library/react';
 import { useRef } from 'react';
 
 const StatusOptions = [
@@ -252,7 +251,7 @@ const Preview = (props) => {
     const params = new URLSearchParams(window.location.search);
     const itemID = params.has('itemId') ? parseInt(params.get('itemId')):0;
     const [localItemId, setLocalID] = useState("-1");
-    const [itemName, setItemName] = useState('');
+    const [itemName, setItemName] = useState('Loading...');
     const [mePhoto, setMePhoto] = useState('');
     const [subscribers, setSubscribers] = useState([]);
     const [updates, setUpdates] = useState();
@@ -266,7 +265,7 @@ const Preview = (props) => {
     const [liveSeverity, setSeverity] = useState();
 
     const [liveBB, setBB] = useState();
-    const [liveUserID, setUserID] = useState();
+    const [liveZDTicket, setTicketID] = useState();
     const [livePriority, setPriority] = useState();
     const [liveType, setType] = useState();
 
@@ -488,7 +487,7 @@ const Preview = (props) => {
                 }
             }`, { variables: {
                 item: parseInt(itemID),
-                columns: [props.settings.dowstatus, props.settings.dowlogin, props.settings.dowreproducible, props.settings.dowpriority, props.settings.dowbb, props.settings.dowuserid, props.settings.dowseverity, props.settings.dowdomain, props.settings.dowtype]
+                columns: [props.settings.dowstatus, props.settings.dowlogin, props.settings.dowreproducible, props.settings.dowpriority, props.settings.dowbb, props.settings.dowzdticket, props.settings.dowseverity, props.settings.dowdomain, props.settings.dowtype]
             }}).then(res => {
                 
                 setMePhoto(res.data.me.photo_small);
@@ -507,7 +506,7 @@ const Preview = (props) => {
                     setPriority(getSelector(item.column_values, settings.dowpriority));
                     setType(getSelector(item.column_values, settings.dowtype));
                     setBB(getSelector(item.column_values, settings.dowbb).value);
-                    setUserID(getSelector(item.column_values, settings.dowuserid).value);
+                    setTicketID(getSelector(item.column_values, settings.dowzdticket).value);
                     
                     setUpdates(updates);
 
@@ -716,9 +715,12 @@ const Preview = (props) => {
     }
 
     return <>
-        <div>
-            <div className='Container d-col-dir bg-white px-1'>
+        <div style={{display: 'flex', flexDirection: 'column', maxHeight: '100%', overflow: 'auto'}}>
+            <div>
                 <div>
+                    <h2 className='tx-white'>{itemName.length > 45 ? itemName.substring(0,45)+'...':itemName}</h2>
+                </div>
+                <div className='Container d-col-dir bg-white px-1'>
                     <table width='100%' className="p-1" style={{textAlign: 'center'}}>
                         <thead>
                             <tr>
@@ -792,7 +794,7 @@ const Preview = (props) => {
                             <tr>
                                 <td><strong><small>Priority</small></strong></td>
                                 <td width='130px'><strong><small>BB Account</small></strong></td>
-                                <td width='130px'><strong><small>User ID</small></strong></td>
+                                <td width='130px'><strong><small>ZD TIcket ID</small></strong></td>
                                 <td><strong><small>Type</small></strong></td>
                             </tr>
                         </thead>
@@ -826,8 +828,8 @@ const Preview = (props) => {
                                         className="m-auto"
                                         iconName="fa fa-square"
                                         size={TextField.sizes.MEDIUM}
-                                        value={liveUserID}
-                                        onChange={(value) => { setUserID(value); listenTimer2(props.settings.dowuserid, value);}}
+                                        value={liveZDTicket}
+                                        onChange={(value) => { setTicketID(value); listenTimer2(props.settings.dowuserid, value);}}
                                         wrapperClassName="monday-storybook-text-field_size"/>
                                 </td>
                                 <td className='liveColoring' style={{backgroundColor: getColor(liveType)}}>
